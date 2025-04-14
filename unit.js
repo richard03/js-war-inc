@@ -59,6 +59,28 @@ class Unit {
         // Resetujeme stav viditelnosti nepřátel
         this.hasVisibleEnemies = false;
 
+        // Pokud máme útočníka, otočíme se k němu
+        if (this.combat.lastAttacker) {
+            const attackerUnit = units.find(unit => unit.combat === this.combat.lastAttacker);
+            if (attackerUnit) {
+                // Vypočítáme směr k útočníkovi
+                const dx = attackerUnit.x - this.x;
+                const dy = attackerUnit.y - this.y;
+                const angle = Math.atan2(dy, dx);
+                
+                // Nastavíme cílový úhel pohledu
+                this.vision.currentVisionAngle = angle;
+                
+                // Pokud je útočník v zorném poli, střílíme na něj
+                if (this.vision.isInVisionCone(attackerUnit.x, attackerUnit.y, this.x, this.y)) {
+                    if (this.combat.canShoot()) {
+                        this.combat.shoot(attackerUnit.combat);
+                        this.view.startFlash();
+                    }
+                }
+            }
+        }
+
         // Aktualizujeme pozici
         this.x += this.velocity.x;
         this.y += this.velocity.y;

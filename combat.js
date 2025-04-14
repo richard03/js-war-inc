@@ -7,6 +7,7 @@ class CombatSystem {
         this.initialShotDelay = 0;
         this.hasSeenEnemy = false;
         this.audio = new AudioSystem();
+        this.lastAttacker = null;
     }
 
     update() {
@@ -39,10 +40,16 @@ class CombatSystem {
             // Náhodné poškození 0-100%
             const damage = Math.random() * 100;
             target.health = Math.max(0, target.health - damage);
+            // Uložíme si útočníka
+            target.lastAttacker = this;
         }
         
-        // Nastavíme cooldown střelby (180 snímků = 3 sekundy při 60 FPS)
-        this.shootCooldown = 180;
+        // Základní cooldown střelby (180 snímků = 3 sekundy při 60 FPS)
+        const baseCooldown = 180;
+        // Náhodná složka (0-20% navíc)
+        const randomVariation = Math.random() * 0.2;
+        // Celkový cooldown (180-216 snímků = 3-3.6 sekundy)
+        this.shootCooldown = Math.floor(baseCooldown * (1 + randomVariation));
     }
 
     canShoot() {
