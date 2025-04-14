@@ -57,8 +57,8 @@ class Game {
             this.hasMoved = false;
             this.dragStart = { x: e.clientX, y: e.clientY };
             
-            // Check if we clicked on a unit
-            const clickedUnit = this.units.find(unit => unit.isPointInside(x, y));
+            // Check if we clicked on a friendly unit
+            const clickedUnit = this.units.find(unit => unit.isPointInside(x, y) && !unit.isEnemy);
             
             if (clickedUnit) {
                 // If shift is not pressed, clear previous selection
@@ -99,14 +99,14 @@ class Game {
                 const endY = e.clientY - rect.top;
                 
                 // Clear previous selection if shift is not pressed and we started dragging from empty space
-                const clickedUnit = this.units.find(unit => unit.isPointInside(startX, startY));
+                const clickedUnit = this.units.find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
                 if (!e.shiftKey && !clickedUnit) {
                     this.clearSelection();
                 }
                 
-                // Select units within the selection box
+                // Select friendly units within the selection box
                 for (const unit of this.units) {
-                    if (unit.isInSelectionBox(startX, startY, endX, endY)) {
+                    if (!unit.isEnemy && unit.isInSelectionBox(startX, startY, endX, endY)) {
                         unit.isSelected = true;
                         if (!this.selectedUnits.has(unit)) {
                             this.selectedUnits.add(unit);
@@ -149,20 +149,84 @@ class Game {
     }
     
     createInitialUnits() {
-        // Create initial units
-        const unitCount = 5;
-        for (let i = 0; i < unitCount; i++) {
-            const x = Math.random() * this.canvas.width;
-            const y = Math.random() * this.canvas.height;
-            const unit = new Unit(x, y, this.canvas.width, this.canvas.height);
+        // Create friendly units in bottom left
+        const friendlyUnitCount = 5;
+        const friendlyAreaWidth = this.canvas.width * 0.3; // 30% of screen width
+        const friendlyAreaHeight = this.canvas.height * 0.3; // 30% of screen height
+        const friendlyStartX = 0;
+        const friendlyStartY = this.canvas.height - friendlyAreaHeight;
+
+        // Create enemy units in top right first
+        const enemyUnitCount = 3;
+        const enemyAreaWidth = this.canvas.width * 0.3; // 30% of screen width
+        const enemyAreaHeight = this.canvas.height * 0.3; // 30% of screen height
+        const enemyStartX = this.canvas.width - enemyAreaWidth;
+        const enemyStartY = 0;
+
+        const enemyUnits = [];
+        for (let i = 0; i < enemyUnitCount; i++) {
+            // Random position within the top right area
+            const x = enemyStartX + Math.random() * enemyAreaWidth;
+            const y = enemyStartY + Math.random() * enemyAreaHeight;
+            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, true);
+            enemyUnits.push(unit);
+        }
+
+        // Calculate average enemy position
+        const avgEnemyX = enemyUnits.reduce((sum, unit) => sum + unit.x, 0) / enemyUnitCount;
+        const avgEnemyY = enemyUnits.reduce((sum, unit) => sum + unit.y, 0) / enemyUnitCount;
+
+        // Create friendly units looking towards enemies
+        for (let i = 0; i < friendlyUnitCount; i++) {
+            // Random position within the bottom left area
+            const x = friendlyStartX + Math.random() * friendlyAreaWidth;
+            const y = friendlyStartY + Math.random() * friendlyAreaHeight;
+            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, false);
+            
+            // Calculate angle towards average enemy position with some variation
+            const dx = avgEnemyX - x;
+            const dy = avgEnemyY - y;
+            const baseAngle = Math.atan2(dy, dx);
+            const angleVariation = (Math.random() - 0.5) * Math.PI / 6; // ±15 degrees variation
+            const friendlyAngle = baseAngle + angleVariation;
+            
+            unit.vision.currentVisionAngle = friendlyAngle;
+            unit.vision.targetVisionAngle = friendlyAngle;
             
             // Reset all physical properties to ensure units start at rest
             unit.velocity = { x: 0, y: 0 };
             unit.currentForce = { x: 0, y: 0, magnitude: 0 };
             unit.lastForceMagnitude = 0;
-            unit.targetVisionAngle = 0;
-            unit.currentVisionAngle = 0;
-            unit.lastVisionAngle = 0;
+            unit.targetVisionAngle = friendlyAngle;
+            unit.currentVisionAngle = friendlyAngle;
+            unit.lastVisionAngle = friendlyAngle;
+            
+            this.units.push(unit);
+        }
+
+        // Calculate average friendly position
+        const avgFriendlyX = this.units.reduce((sum, unit) => sum + unit.x, 0) / friendlyUnitCount;
+        const avgFriendlyY = this.units.reduce((sum, unit) => sum + unit.y, 0) / friendlyUnitCount;
+
+        // Set enemy units to look towards friendly units
+        for (const unit of enemyUnits) {
+            // Calculate angle towards average friendly position with some variation
+            const dx = avgFriendlyX - unit.x;
+            const dy = avgFriendlyY - unit.y;
+            const baseAngle = Math.atan2(dy, dx);
+            const angleVariation = (Math.random() - 0.5) * Math.PI / 6; // ±15 degrees variation
+            const enemyAngle = baseAngle + angleVariation;
+            
+            unit.vision.currentVisionAngle = enemyAngle;
+            unit.vision.targetVisionAngle = enemyAngle;
+            
+            // Reset all physical properties to ensure units start at rest
+            unit.velocity = { x: 0, y: 0 };
+            unit.currentForce = { x: 0, y: 0, magnitude: 0 };
+            unit.lastForceMagnitude = 0;
+            unit.targetVisionAngle = enemyAngle;
+            unit.currentVisionAngle = enemyAngle;
+            unit.lastVisionAngle = enemyAngle;
             
             this.units.push(unit);
         }

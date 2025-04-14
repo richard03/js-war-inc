@@ -2,7 +2,7 @@
 // physics.js obsahuje fyzikální výpočty pro pohyb jednotek
 
 class Unit {
-    constructor(x, y, canvasWidth, canvasHeight) {
+    constructor(x, y, canvasWidth, canvasHeight, isEnemy = false) {
         this.x = x;
         this.y = y;
         this.size = 20;
@@ -11,7 +11,8 @@ class Unit {
         this.targetY = y;
         this.startX = x;
         this.startY = y;
-        this.originalColor = '#ffffff';
+        this.isEnemy = isEnemy;
+        this.originalColor = isEnemy ? '#ff0000' : '#00ff00'; // Red for enemies, green for friendly
         this.currentColor = this.originalColor;
         this.collisionCooldown = 0;
         
@@ -93,8 +94,8 @@ class Unit {
             
             // Kontrolujeme, zda je jednotka v zrakovém poli
             if (this.vision.isInVisionCone(otherUnit.x, otherUnit.y, this.x, this.y)) {
-                // Změníme barvu na červenou
-                this.currentColor = '#ff0000';
+                // Změníme barvu podle typu jednotky
+                this.currentColor = this.isEnemy ? '#ff0000' : '#0000ff';
                 
                 // Vypočítáme sílu pro vyhnutí se
                 const avoidanceForce = this.calculateAvoidanceForce(otherUnit, distance);
