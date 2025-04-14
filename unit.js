@@ -5,7 +5,7 @@ class Unit {
     constructor(x, y, canvasWidth, canvasHeight, isEnemy = false) {
         this.x = x;
         this.y = y;
-        this.size = 20;
+        this.size = 10;
         this.isSelected = false;
         this.targetX = x;
         this.targetY = y;
@@ -15,6 +15,9 @@ class Unit {
         this.originalColor = isEnemy ? '#ff0000' : '#00ff00'; // Red for enemies, green for friendly
         this.currentColor = this.originalColor;
         this.collisionCooldown = 0;
+        this.shootCooldown = 0;
+        this.health = 100;
+        this.hasVisibleEnemies = false;
         
         // Fyzikální vlastnosti
         this.mass = 1;
@@ -22,8 +25,10 @@ class Unit {
         this.velocity = { x: 0, y: 0 };
         this.currentForce = { x: 0, y: 0, magnitude: 0 };
         
-        // Vytvoříme instanci Vision
+        // Vytvoříme instance pomocných systémů
         this.vision = new Vision(canvasWidth, canvasHeight);
+        this.combat = new CombatSystem(isEnemy);
+        this.view = new ViewSystem(isEnemy);
     }
 
     calculateAvoidanceForce(otherUnit, distance) {
@@ -48,9 +53,12 @@ class Unit {
     }
 
     update(units) {
-        // Resetujeme barvu na původní
-        this.currentColor = this.originalColor;
-        
+        // Pokud je jednotka mrtvá, neprovádíme žádné aktualizace
+        if (this.combat.isDead) return;
+
+        // Resetujeme stav viditelnosti nepřátel
+        this.hasVisibleEnemies = false;
+
         // Aktualizujeme pozici
         this.x += this.velocity.x;
         this.y += this.velocity.y;
@@ -65,6 +73,17 @@ class Unit {
         if (this.collisionCooldown > 0) {
             this.collisionCooldown--;
         }
+
+        // Snížíme cooldown střelby
+        if (this.shootCooldown > 0) {
+            this.shootCooldown--;
+        }
+
+        // Aktualizujeme combat systém
+        this.combat.update();
+        
+        // Aktualizujeme view systém
+        this.view.update();
         
         // Kontrolujeme kolize s ostatními jednotkami
         for (const otherUnit of units) {
@@ -77,7 +96,7 @@ class Unit {
             // Pokud je jednotka příliš blízko a není v cooldownu
             if (distance < this.size + otherUnit.size && this.collisionCooldown === 0) {
                 // Nastavíme cooldown
-                this.collisionCooldown = 30; // 30 snímků cooldownu
+                this.collisionCooldown = 30;
                 
                 // Odstrčíme jednotky od sebe
                 const pushForce = 0.5;
@@ -93,9 +112,20 @@ class Unit {
             }
             
             // Kontrolujeme, zda je jednotka v zrakovém poli
-            if (this.vision.isInVisionCone(otherUnit.x, otherUnit.y, this.x, this.y)) {
-                // Změníme barvu podle typu jednotky
-                this.currentColor = this.isEnemy ? '#ff0000' : '#0000ff';
+            const seesEnemy = this.vision.isInVisionCone(otherUnit.x, otherUnit.y, this.x, this.y);
+            this.view.updateColor(seesEnemy);
+            
+            if (seesEnemy) {
+                // Pokud je jednotka nepřátelská a můžeme střílet
+                if (otherUnit.combat.isEnemy !== this.combat.isEnemy && !otherUnit.combat.isDead) {
+                    this.hasVisibleEnemies = true;
+                    // Nastavíme počáteční zpoždění při prvním spatření nepřítele
+                    this.combat.setInitialDelay();
+                    if (this.combat.canShoot()) {
+                        this.combat.shoot(otherUnit.combat);
+                        this.view.startFlash(); // Trigger flash effect when shooting
+                    }
+                }
                 
                 // Vypočítáme sílu pro vyhnutí se
                 const avoidanceForce = this.calculateAvoidanceForce(otherUnit, distance);
@@ -104,6 +134,11 @@ class Unit {
                 this.currentForce.x += avoidanceForce.x;
                 this.currentForce.y += avoidanceForce.y;
             }
+        }
+
+        // Pokud nemáme viditelné nepřátele, vrátíme se k původní barvě
+        if (!this.hasVisibleEnemies) {
+            this.view.updateColor(false);
         }
         
         // Výpočet vzdálenosti k cíli
@@ -165,83 +200,45 @@ class Unit {
         }
     }
 
-    draw(ctx) {
-        // Vykreslíme jednotku
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = this.currentColor;
-        ctx.fill();
-        
-        // Pokud je jednotka vybraná, přidáme zelený rámeček
-        if (this.isSelected) {
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-            ctx.stroke();
+    shoot(target) {
+        // 90% šance na zásah
+        if (Math.random() < 0.9) {
+            // Náhodné poškození 0-100%
+            const damage = Math.random() * 100;
+            target.health = Math.max(0, target.health - damage);
         }
+        
+        // Nastavíme cooldown střelby (60 snímků = 1 sekunda při 60 FPS)
+        this.shootCooldown = 60;
+    }
+
+    draw(ctx) {
+        // Pokud je jednotka mrtvá, nevykreslujeme ji
+        if (this.combat.isDead) return;
+
+        // Vykreslíme jednotku
+        this.view.drawUnit(ctx, this.x, this.y, this.size, this.isSelected);
         
         // Vykreslíme zrakové pole
-        this.vision.draw(ctx, this.x, this.y);
+        this.view.drawVision(ctx, this.x, this.y, this.vision);
 
-        // Draw coordinates and force
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        
-        // Current position
-        const currentPosText = `Pos: (${Math.round(this.x)}, ${Math.round(this.y)})`;
-        ctx.fillText(currentPosText, this.x, this.y - this.size - 5);
-        
-        // Target position
-        const targetPosText = `Target: (${Math.round(this.targetX)}, ${Math.round(this.targetY)})`;
-        ctx.fillText(targetPosText, this.x, this.y - this.size - 20);
-
-        // Force information
-        const forceMagnitude = Math.sqrt(this.currentForce.x * this.currentForce.x + this.currentForce.y * this.currentForce.y);
-        const forceText = `Force: ${forceMagnitude.toFixed(2)}`;
-        ctx.fillText(forceText, this.x, this.y - this.size - 35);
-
-        // Draw force vector if there is any force
-        if (forceMagnitude > 0.1) {
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y);
-            ctx.lineTo(
-                this.x + this.currentForce.x * 10,
-                this.y + this.currentForce.y * 10
-            );
-            ctx.strokeStyle = 'yellow';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Draw arrow head
-            const arrowAngle = Math.atan2(this.currentForce.y, this.currentForce.x);
-            const arrowLength = 10;
-            const arrowHeadAngle = Math.PI / 6;
-            
-            ctx.beginPath();
-            const endX = this.x + this.currentForce.x * 10;
-            const endY = this.y + this.currentForce.y * 10;
-            ctx.moveTo(endX, endY);
-            ctx.lineTo(
-                endX - arrowLength * Math.cos(arrowAngle - arrowHeadAngle),
-                endY - arrowLength * Math.sin(arrowAngle - arrowHeadAngle)
-            );
-            ctx.lineTo(
-                endX - arrowLength * Math.cos(arrowAngle + arrowHeadAngle),
-                endY - arrowLength * Math.sin(arrowAngle + arrowHeadAngle)
-            );
-            ctx.closePath();
-            ctx.fillStyle = 'yellow';
-            ctx.fill();
-        }
+        // Vykreslíme zdraví
+        this.view.drawHealth(ctx, this.x, this.y, this.size, this.combat.health);
     }
 
     isPointInside(x, y) {
+        // Mrtvé jednotky nelze vybrat
+        if (this.combat.isDead) return false;
+
         const dx = x - this.x;
         const dy = y - this.y;
         return Math.sqrt(dx * dx + dy * dy) <= this.size;
     }
     
     isInSelectionBox(startX, startY, endX, endY) {
+        // Mrtvé jednotky nelze vybrat
+        if (this.combat.isDead) return false;
+
         const left = Math.min(startX, endX);
         const right = Math.max(startX, endX);
         const top = Math.min(startY, endY);
