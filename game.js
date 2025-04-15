@@ -170,7 +170,12 @@ class Game {
             // Random position within the top right area
             const x = enemyStartX + Math.random() * enemyAreaWidth;
             const y = enemyStartY + Math.random() * enemyAreaHeight;
-            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, true, this.debugMode);
+            const unit = new Unit({
+                x: x,
+                y: y,
+                isEnemy: true,
+                debugMode: this.debugMode
+            });
             enemyUnits.push(unit);
         }
 
@@ -183,7 +188,12 @@ class Game {
             // Random position within the bottom left area
             const x = friendlyStartX + Math.random() * friendlyAreaWidth;
             const y = friendlyStartY + Math.random() * friendlyAreaHeight;
-            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, false, this.debugMode);
+            const unit = new Unit({
+                x: x,
+                y: y,
+                isEnemy: false,
+                debugMode: this.debugMode
+            });
             
             // Calculate angle towards average enemy position with some variation
             const dx = avgEnemyX - x;

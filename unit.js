@@ -2,34 +2,34 @@
 // physics.js obsahuje fyzikální výpočty pro pohyb jednotek
 
 class Unit {
-    constructor(x, y, canvasWidth, canvasHeight, isEnemy = false, debugMode = false) {
-        this.x = x;
-        this.y = y;
-        this.size = 10;
-        this.isSelected = false;
-        this.targetX = x;
-        this.targetY = y;
-        this.startX = x;
-        this.startY = y;
-        this.isEnemy = isEnemy;
-        this.color = isEnemy ? '#ff0000' : '#00ff00'; // Red for enemies, green for friendly
-        this.collisionCooldown = 0;
-        this.shootCooldown = 0;
-        this.health = 100;
-        this.hasVisibleEnemies = false;
+    constructor(cfg) {
+        this.debugMode = cfg.debugMode || true;
+        this.x = cfg.x;
+        this.y = cfg.y;
+        this.size = cfg.size || 20;
+        this.isSelected = cfg.isSelected || false;
+        this.targetX = this.x;
+        this.targetY = this.y;
+        this.startX = this.x;
+        this.startY = this.y;
+        this.isEnemy = cfg.isEnemy;
+        this.collisionCooldown = cfg.collisionCooldown || 0;
+        this.shootCooldown = cfg.shootCooldown || 0;
+        this.health = cfg.health || 100;
+        this.hasVisibleEnemies = cfg.hasVisibleEnemies || false;
         
         // Fyzikální vlastnosti
-        this.mass = 1;
-        this.maxForce = 0.5;
+        this.mass = cfg.mass || 1;
+        this.maxForce = cfg.maxForce || 0.5;
         this.velocity = { x: 0, y: 0 };
         this.currentForce = { x: 0, y: 0, magnitude: 0 };
         
         // Vytvoříme instance pomocných systémů
         this.vision = new UnitVision();
-        this.combat = new CombatSystem(isEnemy);
+        this.combat = new CombatSystem(this.isEnemy);
         this.view = new UnitView({
-            debugMode: debugMode,
-            color: this.color
+            debugMode: this.debugMode,
+            color: this.isEnemy ? '#ff0000' : '#00ff00'
         });
     }
 
