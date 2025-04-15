@@ -1,5 +1,8 @@
+const debugMode = false;
+
 class Game {
-    constructor() {
+    constructor(cfg) {
+        this.debugMode = cfg.debugMode || true; // Výchozí hodnota debug módu
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.units = [];
@@ -11,8 +14,11 @@ class Game {
         this.hasMoved = false;  // Track if mouse has moved since mousedown
         this.formations = new Map();
         this.currentFormation = null;
-        this.terrain = new Terrain(this.canvas.width, this.canvas.height);
-        this.debugMode = true; // Výchozí hodnota debug módu
+        this.terrain = new Terrain({
+            canvasWidth: this.canvas.width,
+            canvasHeight: this.canvas.height,
+            debugMode: this.debugMode
+        });
         
         // Inicializace v správném pořadí
         this.resizeCanvas();
@@ -364,5 +370,7 @@ class Game {
 
 // Start the game when the page loads
 window.addEventListener('load', () => {
-    new Game();
+    new Game({
+        debugMode: debugMode
+    });
 }); 
