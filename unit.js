@@ -2,8 +2,8 @@
 // physics.js obsahuje fyzikální výpočty pro pohyb jednotek
 
 class Unit {
-    constructor(cfg) {
-        this.debugMode = cfg.debugMode || true;
+    constructor(cfg = {}) {
+        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true;
         this.x = cfg.x;
         this.y = cfg.y;
         this.size = cfg.size || 20;

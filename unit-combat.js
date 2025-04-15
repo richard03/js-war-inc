@@ -1,5 +1,6 @@
 class UnitCombat {
-    constructor(cfg) {
+    constructor(cfg = {}) {
+        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true;
         this.shootCooldown = cfg.shootCooldown || 0;
         this.health = cfg.health || 100;
         this.isEnemy = cfg.isEnemy;

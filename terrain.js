@@ -1,12 +1,13 @@
 class Terrain {
-    constructor(cfg) {
+    constructor(cfg = {}) {
+        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true;
         this.tileSize = cfg.tileSize || 20;
         this.width = Math.ceil(cfg.canvasWidth / this.tileSize) * 10;
         this.height = Math.ceil(cfg.canvasHeight / this.tileSize) * 10;
         this.xOffset = Math.random() * 10000;
         this.yOffset = Math.random() * 10000;
         this.heightMap = this.generateHeightMap();
-        this.debugMode = cfg.debugMode || true;
+        
     }
 
     // Generování výškové mapy pomocí Perlinova šumu

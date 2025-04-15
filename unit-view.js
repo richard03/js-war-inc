@@ -1,6 +1,6 @@
 class UnitView {
-    constructor(cfg) {
-        this.debugMode = cfg.debugMode || true;
+    constructor(cfg = {}) {
+        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true;
         this.originalColor = cfg.color || '#00ff00';
         this.currentColor = this.originalColor;
         this.selectedColor = cfg.selectedColor || '#00ff00';

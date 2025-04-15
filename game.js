@@ -2,7 +2,7 @@ const debugMode = false;
 
 class Game {
     constructor(cfg) {
-        this.debugMode = cfg.debugMode || true; // Výchozí hodnota debug módu
+        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true; // Výchozí hodnota debug módu
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.units = [];
