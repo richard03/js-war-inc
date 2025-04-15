@@ -1,17 +1,20 @@
 class Terrain {
     constructor(canvasWidth, canvasHeight) {
-        this.tileSize = 10;
+        this.tileSize = 20;
         this.width = Math.ceil(canvasWidth / this.tileSize) * 10;
         this.height = Math.ceil(canvasHeight / this.tileSize) * 10;
+        this.xOffset = Math.random() * 10000;
+        this.yOffset = Math.random() * 10000;
         this.heightMap = this.generateHeightMap();
+        this.debugMode = true;
     }
 
     // Generování výškové mapy pomocí Perlinova šumu
     generateHeightMap() {
         const heightMap = new Array(this.height);
-        const scale = 0.005;
-        const persistence = 0.5;
-        const octaves = 3;
+        const scale = 0.02;
+        const persistence = 0.7;
+        const octaves = 5;
 
         for (let y = 0; y < this.height; y++) {
             heightMap[y] = new Array(this.width);
@@ -21,8 +24,8 @@ class Terrain {
                 let noiseHeight = 0;
 
                 for (let i = 0; i < octaves; i++) {
-                    const sampleX = x * scale * frequency;
-                    const sampleY = y * scale * frequency;
+                    const sampleX = (x + this.xOffset) * scale * frequency;
+                    const sampleY = (y + this.yOffset) * scale * frequency;
                     
                     const perlinValue = Math.sin(sampleX) * Math.cos(sampleY);
                     noiseHeight += perlinValue * amplitude;
@@ -50,7 +53,17 @@ class Terrain {
             { height: 1.0, color: '#663300' }    // Velmi tmavá hnědá (hora)
         ];
 
-        // Najdeme dvě nejbližší barvy
+        // V debug módu použijeme přesnou barvu bez interpolace
+        if (this.debugMode) {
+            for (let i = 0; i < colors.length - 1; i++) {
+                if (height <= colors[i + 1].height) {
+                    return colors[i].color;
+                }
+            }
+            return colors[colors.length - 1].color;
+        }
+
+        // Normální režim s interpolací
         let lowerColor = colors[0];
         let upperColor = colors[colors.length - 1];
 
@@ -62,15 +75,12 @@ class Terrain {
             }
         }
 
-        // Interpolace mezi barvami
         const range = upperColor.height - lowerColor.height;
         const factor = (height - lowerColor.height) / range;
 
-        // Převod hex barev na RGB
         const lowerRGB = this.hexToRgb(lowerColor.color);
         const upperRGB = this.hexToRgb(upperColor.color);
 
-        // Interpolace RGB hodnot
         const r = Math.round(lowerRGB.r + (upperRGB.r - lowerRGB.r) * factor);
         const g = Math.round(lowerRGB.g + (upperRGB.g - lowerRGB.g) * factor);
         const b = Math.round(lowerRGB.b + (upperRGB.b - lowerRGB.b) * factor);
@@ -102,6 +112,17 @@ class Terrain {
                     this.tileSize,
                     this.tileSize
                 );
+
+                if (this.debugMode) {
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(
+                        x * this.tileSize,
+                        y * this.tileSize,
+                        this.tileSize,
+                        this.tileSize
+                    );
+                }
             }
         }
     }
