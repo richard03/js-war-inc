@@ -1,23 +1,11 @@
-class Vision {
-    constructor(canvasWidth, canvasHeight) {
-        this.canvasWidth = canvasWidth;
-        this.canvasHeight = canvasHeight;
-        this.visionRange = 800; // Zvětšený dosah vidění
-        this.visionConeAngle = Math.PI * 2/3; // 120 stupňů
-        this.currentVisionAngle = 0;
-        this.targetVisionAngle = 0;
-        this.visionRotationSpeed = 0.1; // Rychlost rotace zrakového pole
-        this.isAvoiding = false;
-    }
-
-    // Vypočítá maximální možnou délku zorného pole
-    calculateMaxDistance(x, y) {
-        return Math.max(
-            Math.sqrt(x * x + y * y),
-            Math.sqrt((this.canvasWidth - x) * (this.canvasWidth - x) + y * y),
-            Math.sqrt(x * x + (this.canvasHeight - y) * (this.canvasHeight - y)),
-            Math.sqrt((this.canvasWidth - x) * (this.canvasWidth - x) + (this.canvasHeight - y) * (this.canvasHeight - y))
-        );
+class UnitVision {
+    constructor(cfg = {}) {
+        this.visionRange = cfg.visionRange || 800;
+        this.visionConeAngle = cfg.visionConeAngle || Math.PI * 2/3;
+        this.currentVisionAngle = this.visionConeAngle;
+        this.targetVisionAngle = this.visionConeAngle;
+        this.visionRotationSpeed = cfg.visionRotationSpeed || 0.1; // Rychlost rotace zrakového pole
+        this.seesObstacle = false;
     }
 
     // Vykreslí zorné pole
@@ -106,10 +94,10 @@ class Vision {
 
     // Kontroluje, zda je v zorném poli nějaká jednotka
     checkUnitsInVision(unitX, unitY, units) {
-        this.isAvoiding = false;
+        this.seesObstacle = false;
         for (const unit of units) {
             if (this.isUnitInVisionCone(unitX, unitY, unit.x, unit.y)) {
-                this.isAvoiding = true;
+                this.seesObstacle = true;
                 break;
             }
         }

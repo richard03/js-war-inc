@@ -25,7 +25,7 @@ class Unit {
         this.currentForce = { x: 0, y: 0, magnitude: 0 };
         
         // Vytvoříme instance pomocných systémů
-        this.vision = new Vision(canvasWidth, canvasHeight);
+        this.vision = new UnitVision();
         this.combat = new CombatSystem(isEnemy);
         this.view = new UnitView({
             debugMode: debugMode,
