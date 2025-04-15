@@ -2,7 +2,7 @@
 // physics.js obsahuje fyzikální výpočty pro pohyb jednotek
 
 class Unit {
-    constructor(x, y, canvasWidth, canvasHeight, isEnemy = false) {
+    constructor(x, y, canvasWidth, canvasHeight, isEnemy = false, debugMode = false) {
         this.x = x;
         this.y = y;
         this.size = 10;
@@ -28,7 +28,7 @@ class Unit {
         // Vytvoříme instance pomocných systémů
         this.vision = new Vision(canvasWidth, canvasHeight);
         this.combat = new CombatSystem(isEnemy);
-        this.view = new ViewSystem(isEnemy);
+        this.view = new ViewSystem(isEnemy, debugMode);
     }
 
     calculateAvoidanceForce(otherUnit, distance) {

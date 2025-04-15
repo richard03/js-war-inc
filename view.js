@@ -1,11 +1,12 @@
 class ViewSystem {
-    constructor(isEnemy) {
+    constructor(isEnemy, debugMode = false) {
         this.isEnemy = isEnemy;
+        this.debugMode = debugMode;
         this.originalColor = isEnemy ? '#ff0000' : '#00ff00';
         this.currentColor = this.originalColor;
         this.selectedColor = '#00ff00';
-        this.visionColor = 'rgba(255, 255, 0, 0.1)';
-        this.visionBorderColor = 'rgba(255, 255, 0, 0.3)';
+        this.visionColor = 'rgba(255, 255, 0, 0.01)';
+        this.visionBorderColor = 'rgba(255, 255, 0, 0.03)';
         this.healthColors = {
             high: '#00ff00',
             medium: '#ffff00',
@@ -17,7 +18,7 @@ class ViewSystem {
         // Flash effect properties
         this.flashActive = false;
         this.flashTimer = 0;
-        this.flashDuration = 5; // frames
+        this.flashDuration = 6; // 0.1 sekundy při 60 FPS
         this.flashColor = '#ffffff';
     }
 
@@ -86,27 +87,27 @@ class ViewSystem {
     }
 
     drawVision(ctx, x, y, vision) {
-        // Draw vision cone
+        // Vykreslíme zrakové pole pouze v debug módu
+        if (!this.debugMode) return;
+
+        ctx.save();
         ctx.beginPath();
         ctx.moveTo(x, y);
         
-        // Calculate vision cone endpoints
+        // Vypočítáme koncové body kužele
         const startAngle = vision.currentVisionAngle - vision.visionConeAngle / 2;
         const endAngle = vision.currentVisionAngle + vision.visionConeAngle / 2;
         
-        // Draw vision cone arc
+        // Vykreslíme oblouk
         ctx.arc(x, y, vision.visionRange, startAngle, endAngle);
         
-        // Return to center
+        // Vrátíme se zpět do středu
         ctx.lineTo(x, y);
         
-        // Fill vision cone
+        // Nastavíme barvu a průhlednost
         ctx.fillStyle = this.visionColor;
         ctx.fill();
         
-        // Draw vision cone border
-        ctx.strokeStyle = this.visionBorderColor;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.restore();
     }
 } 

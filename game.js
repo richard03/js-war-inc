@@ -11,6 +11,8 @@ class Game {
         this.hasMoved = false;  // Track if mouse has moved since mousedown
         this.formations = new Map();
         this.currentFormation = null;
+        this.terrain = new Terrain(this.canvas.width, this.canvas.height);
+        this.debugMode = true; // Výchozí hodnota debug módu
         
         // Inicializace v správném pořadí
         this.resizeCanvas();
@@ -168,7 +170,7 @@ class Game {
             // Random position within the top right area
             const x = enemyStartX + Math.random() * enemyAreaWidth;
             const y = enemyStartY + Math.random() * enemyAreaHeight;
-            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, true);
+            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, true, this.debugMode);
             enemyUnits.push(unit);
         }
 
@@ -181,7 +183,7 @@ class Game {
             // Random position within the bottom left area
             const x = friendlyStartX + Math.random() * friendlyAreaWidth;
             const y = friendlyStartY + Math.random() * friendlyAreaHeight;
-            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, false);
+            const unit = new Unit(x, y, this.canvas.width, this.canvas.height, false, this.debugMode);
             
             // Calculate angle towards average enemy position with some variation
             const dx = avgEnemyX - x;
@@ -264,6 +266,9 @@ class Game {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Draw terrain
+        this.terrain.draw(this.ctx);
+        
         // Update and draw units
         for (const unit of this.units) {
             unit.update(this.units);
@@ -331,6 +336,17 @@ class Game {
                 if (!this.isShiftPressed) {
                     this.units.forEach(unit => unit.isSelected = false);
                 }
+            }
+        }
+    }
+
+    handleKeyDown(event) {
+        // Přepínání debug módu pomocí klávesy D
+        if (event.key === 'd' || event.key === 'D') {
+            this.debugMode = !this.debugMode;
+            // Aktualizujeme debug mód u všech jednotek
+            for (const unit of this.units) {
+                unit.view.debugMode = this.debugMode;
             }
         }
     }
