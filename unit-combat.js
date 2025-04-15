@@ -1,10 +1,10 @@
-class CombatSystem {
-    constructor(isEnemy = false) {
-        this.shootCooldown = 0;
-        this.health = 100;
-        this.isEnemy = isEnemy;
-        this.isDead = false;
-        this.initialShotDelay = 0;
+class UnitCombat {
+    constructor(cfg) {
+        this.shootCooldown = cfg.shootCooldown || 0;
+        this.health = cfg.health || 100;
+        this.isEnemy = cfg.isEnemy;
+        this.isDead = cfg.isDead || false;
+        this.initialShotDelay = cfg.initialShotDelay || 0;
         this.hasSeenEnemy = false;
         this.audio = new AudioSystem();
         this.lastAttacker = null;

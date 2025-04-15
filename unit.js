@@ -26,7 +26,13 @@ class Unit {
         
         // Vytvoříme instance pomocných systémů
         this.vision = new UnitVision();
-        this.combat = new CombatSystem(this.isEnemy);
+        this.combat = new UnitCombat({
+            debugMode: this.debugMode,
+            isEnemy: this.isEnemy,
+            shootCooldown: this.shootCooldown,
+            initialShotDelay: this.initialShotDelay,
+            health: this.health
+        });
         this.view = new UnitView({
             debugMode: this.debugMode,
             color: this.isEnemy ? '#ff0000' : '#00ff00'
