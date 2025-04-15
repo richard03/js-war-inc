@@ -1,33 +1,24 @@
-class ViewSystem {
-    constructor(isEnemy, debugMode = false) {
-        this.isEnemy = isEnemy;
-        this.debugMode = debugMode;
-        this.originalColor = isEnemy ? '#ff0000' : '#00ff00';
+class UnitView {
+    constructor(cfg) {
+        this.debugMode = cfg.debugMode || true;
+        this.originalColor = cfg.color || '#00ff00';
         this.currentColor = this.originalColor;
-        this.selectedColor = '#00ff00';
-        this.visionColor = 'rgba(255, 255, 0, 0.01)';
-        this.visionBorderColor = 'rgba(255, 255, 0, 0.03)';
-        this.healthColors = {
+        this.selectedColor = cfg.selectedColor || '#00ff00';
+        this.visionColor = cfg.visionColor || 'rgba(255, 255, 0, 0.01)';
+        this.visionBorderColor = cfg.visionBorderColor || 'rgba(255, 255, 0, 0.03)';
+        this.healthColors = cfg.healthColors || {
             high: '#00ff00',
             medium: '#ffff00',
             low: '#ff0000'
         };
-        this.textColor = 'white';
-        this.healthBarBackground = 'rgba(0, 0, 0, 0.5)';
+        this.textColor = cfg.textColor || 'white';
+        this.healthBarBackground = cfg.healthBarBackground || 'rgba(0, 0, 0, 0.5)';
         
         // Flash effect properties
-        this.flashActive = false;
-        this.flashTimer = 0;
-        this.flashDuration = 6; // 0.1 sekundy při 60 FPS
-        this.flashColor = '#ffffff';
-    }
-
-    updateColor(seesEnemy) {
-        if (seesEnemy) {
-            this.currentColor = this.isEnemy ? '#ff0000' : '#0000ff';
-        } else {
-            this.currentColor = this.originalColor;
-        }
+        this.flashActive = cfg.flashActive || false;
+        this.flashTimer = cfg.flashTimer || 0;
+        this.flashDuration = cfg.flashDuration || 6; // 0.1 sekundy při 60 FPS
+        this.flashColor = cfg.flashColor || '#ffffff';
     }
 
     startFlash() {

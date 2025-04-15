@@ -12,8 +12,7 @@ class Unit {
         this.startX = x;
         this.startY = y;
         this.isEnemy = isEnemy;
-        this.originalColor = isEnemy ? '#ff0000' : '#00ff00'; // Red for enemies, green for friendly
-        this.currentColor = this.originalColor;
+        this.color = isEnemy ? '#ff0000' : '#00ff00'; // Red for enemies, green for friendly
         this.collisionCooldown = 0;
         this.shootCooldown = 0;
         this.health = 100;
@@ -28,7 +27,10 @@ class Unit {
         // Vytvoříme instance pomocných systémů
         this.vision = new Vision(canvasWidth, canvasHeight);
         this.combat = new CombatSystem(isEnemy);
-        this.view = new ViewSystem(isEnemy, debugMode);
+        this.view = new UnitView({
+            debugMode: debugMode,
+            color: this.color
+        });
     }
 
     calculateAvoidanceForce(otherUnit, distance) {
@@ -135,7 +137,6 @@ class Unit {
             
             // Kontrolujeme, zda je jednotka v zrakovém poli
             const seesEnemy = this.vision.isInVisionCone(otherUnit.x, otherUnit.y, this.x, this.y);
-            this.view.updateColor(seesEnemy);
             
             if (seesEnemy) {
                 // Pokud je jednotka nepřátelská a můžeme střílet
@@ -156,11 +157,6 @@ class Unit {
                 this.currentForce.x += avoidanceForce.x;
                 this.currentForce.y += avoidanceForce.y;
             }
-        }
-
-        // Pokud nemáme viditelné nepřátele, vrátíme se k původní barvě
-        if (!this.hasVisibleEnemies) {
-            this.view.updateColor(false);
         }
         
         // Výpočet vzdálenosti k cíli
