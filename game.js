@@ -3,8 +3,7 @@ const debugMode = false;
 class Game {
     constructor(cfg) {
         this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true; // Výchozí hodnota debug módu
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.gameView = new GameView();
         this.units = [];
         this.selectedUnits = new Set();
         this.mousePosition = { x: 0, y: 0 };
@@ -15,8 +14,8 @@ class Game {
         this.formations = new Map();
         this.currentFormation = null;
         this.terrain = new Terrain({
-            canvasWidth: this.canvas.width,
-            canvasHeight: this.canvas.height,
+            canvasWidth: this.gameView.canvas.width,
+            canvasHeight: this.gameView.canvas.height,
             debugMode: this.debugMode
         });
         
@@ -30,13 +29,13 @@ class Game {
     }
     
     resizeCanvas() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        this.gameView.canvas.width = window.innerWidth;
+        this.gameView.canvas.height = window.innerHeight;
         
         // Aktualizujeme rozměry canvasu u všech jednotek
         for (const unit of this.units) {
-            unit.canvasWidth = this.canvas.width;
-            unit.canvasHeight = this.canvas.height;
+            unit.canvasWidth = this.gameView.canvas.width;
+            unit.canvasHeight = this.gameView.canvas.height;
         }
     }
     
@@ -50,16 +49,15 @@ class Game {
             }
         });
         
-        this.canvas.addEventListener('mousedown', (e) => {
+        window.addEventListener('mousedown', (e) => {
             // Handle right click to clear selection
             if (e.button === 2) { // Right mouse button
                 this.clearSelection();
                 return;
             }
             
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = e.clientX - this.gameView.canvasLeft;
+            const y = e.clientY - this.gameView.canvasTop;
             
             this.isDragging = true;
             this.hasMoved = false;
@@ -86,7 +84,7 @@ class Game {
             }
         });
 
-        this.canvas.addEventListener('mousemove', (e) => {
+        window.addEventListener('mousemove', (e) => {
             if (this.isDragging) {
                 // Mark that the mouse has moved during drag
                 const dx = e.clientX - this.dragStart.x;
@@ -100,11 +98,10 @@ class Game {
             
             // If dragging, select units within the selection box
             if (this.isDragging && this.hasMoved) {
-                const rect = this.canvas.getBoundingClientRect();
-                const startX = this.dragStart.x - rect.left;
-                const startY = this.dragStart.y - rect.top;
-                const endX = e.clientX - rect.left;
-                const endY = e.clientY - rect.top;
+                const startX = this.dragStart.x - this.gameView.canvasLeft;
+                const startY = this.dragStart.y - this.gameView.canvasTop;
+                const endX = e.clientX - this.gameView.canvasLeft;
+                const endY = e.clientY - this.gameView.canvasTop;
                 
                 // Clear previous selection if shift is not pressed and we started dragging from empty space
                 const clickedUnit = this.units.find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
@@ -129,10 +126,9 @@ class Game {
             }
         });
 
-        this.canvas.addEventListener('mouseup', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+        window.addEventListener('mouseup', (e) => {
+            const x = e.clientX - this.gameView.canvasLeft;
+            const y = e.clientY - this.gameView.canvasTop;
             
             // If we didn't move during drag and clicked on empty space, move units
             if (!this.hasMoved && this.selectedUnits.size > 0) {
@@ -151,7 +147,7 @@ class Game {
         });
         
         // Prevent context menu on right click
-        this.canvas.addEventListener('contextmenu', (e) => {
+        this.gameView.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
     }
@@ -159,16 +155,16 @@ class Game {
     createInitialUnits() {
         // Create friendly units in bottom left
         const friendlyUnitCount = 5;
-        const friendlyAreaWidth = this.canvas.width * 0.3; // 30% of screen width
-        const friendlyAreaHeight = this.canvas.height * 0.3; // 30% of screen height
+        const friendlyAreaWidth = this.gameView.canvas.width * 0.3; // 30% of screen width
+        const friendlyAreaHeight = this.gameView.canvas.height * 0.3; // 30% of screen height
         const friendlyStartX = 0;
-        const friendlyStartY = this.canvas.height - friendlyAreaHeight;
+        const friendlyStartY = this.gameView.canvas.height - friendlyAreaHeight;
 
         // Create enemy units in top right first
         const enemyUnitCount = 3;
-        const enemyAreaWidth = this.canvas.width * 0.3; // 30% of screen width
-        const enemyAreaHeight = this.canvas.height * 0.3; // 30% of screen height
-        const enemyStartX = this.canvas.width - enemyAreaWidth;
+        const enemyAreaWidth = this.gameView.canvas.width * 0.3; // 30% of screen width
+        const enemyAreaHeight = this.gameView.canvas.height * 0.3; // 30% of screen height
+        const enemyStartX = this.gameView.canvas.width - enemyAreaWidth;
         const enemyStartY = 0;
 
         const enemyUnits = [];
@@ -280,33 +276,26 @@ class Game {
     
     draw() {
         // Clear canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+        this.gameView.clear();
+
         // Draw terrain
-        this.terrain.draw(this.ctx);
+        this.terrain.draw(this.gameView.ctx);
         
         // Update and draw units
         for (const unit of this.units) {
             unit.update(this.units);
-            unit.draw(this.ctx);
+            unit.draw(this.gameView.ctx);
         }
         
         // Update and draw formation if it exists
         if (this.currentFormation) {
             this.currentFormation.update();
-            this.currentFormation.draw(this.ctx);
+            this.currentFormation.draw(this.gameView.ctx);
         }
         
         // Draw selection box if dragging
         if (this.isDragging) {
-            this.ctx.strokeStyle = 'white';
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(
-                this.dragStart.x,
-                this.dragStart.y,
-                this.mousePosition.x - this.dragStart.x,
-                this.mousePosition.y - this.dragStart.y
-            );
+            this.gameView.drawSelectBox(this.dragStart.x, this.dragStart.y, this.mousePosition.x, this.mousePosition.y);
         }
     }
     
