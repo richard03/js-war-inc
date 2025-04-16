@@ -241,7 +241,7 @@ class Unit {
         if (this.combat.isDead) return;
 
         // Vykreslíme jednotku
-        this.view.drawUnit(ctx, this.x, this.y, this.size, this.isSelected);
+        this.view.drawUnit(ctx, this.x, this.y, this.size, this.isSelected, this.hasVisibleEnemies);
         
         // Vykreslíme zrakové pole
         this.view.drawVision(ctx, this.x, this.y, this.vision);

@@ -35,7 +35,17 @@ class UnitView {
         }
     }
 
-    drawUnit(ctx, x, y, size, isSelected) {
+    drawExclamationMark(ctx, x, y, size) {
+        ctx.save();
+        ctx.fillStyle = 'black';
+        ctx.font = `${size * 1.5}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('!', x, y);
+        ctx.restore();
+    }
+
+    drawUnit(ctx, x, y, size, isSelected, hasVisibleEnemies) {
         // Draw unit circle
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -49,6 +59,11 @@ class UnitView {
             ctx.strokeStyle = this.selectedColor;
             ctx.lineWidth = 3;
             ctx.stroke();
+        }
+
+        // Draw exclamation mark in debug mode if unit sees enemies
+        if (this.debugMode && hasVisibleEnemies) {
+            this.drawExclamationMark(ctx, x, y, size);
         }
     }
 
