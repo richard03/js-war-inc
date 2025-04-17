@@ -81,6 +81,7 @@ class Formation {
         this.targetPosition = { x, y };
     }
 
+    // this is just for debugging
     draw(ctx) {
         // Draw formation center
         const centerX = this.units.reduce((sum, unit) => sum + unit.x, 0) / this.units.length;

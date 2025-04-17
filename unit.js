@@ -15,10 +15,13 @@ class Unit {
         this.startY = this.y;
         this.isEnemy = cfg.isEnemy;
         this.isDead = typeof cfg.isDead == "undefined" ? false : cfg.isDead;
+        this.isOnFire = typeof cfg.isOnFire == "undefined" ? false : cfg.isOnFire;
         this.collisionCooldown = cfg.collisionCooldown || 0;
         this.shootCooldown = cfg.shootCooldown || 0;
         this.health = cfg.health || 100;
         this.hasVisibleEnemies = cfg.hasVisibleEnemies || false;
+        this.lastAttacker = null;
+        
         
         // Fyzikální vlastnosti
         this.mass = cfg.mass || 1;
@@ -28,16 +31,10 @@ class Unit {
         
         // Vytvoříme instance pomocných systémů
         this.vision = new UnitVision();
-        this.combat = new UnitCombat({
-            debugMode: this.debugMode,
-            isEnemy: this.isEnemy,
-            shootCooldown: this.shootCooldown,
-            initialShotDelay: this.initialShotDelay,
-            health: this.health
-        });
         this.view = new UnitView(this, game.view.ctx, {
             color: this.isEnemy ? '#ff0000' : '#00ff00'
         });
+        this.audio = new AudioSystem({debugMode: this.debugMode});
 
         // Formation cohesion properties
         this.formationCohesionRadius = 50; // Distance to maintain from other units in formation
@@ -88,16 +85,21 @@ class Unit {
         return currentAngle + angleDiff;
     }
 
-    update() {
-        // Pokud je jednotka mrtvá, neprovádíme žádné aktualizace
-        if (this.combat.isDead) return;
+    update(units) {
+        // Pokud je jednotka zničena, pouze aktualizujeme oheň
+        if (this.isDead) {
+            this.isOnFire = true; // Zničené jednotky vždy hoří
+            return;
+        }
 
         // Resetujeme stav viditelnosti nepřátel
         this.hasVisibleEnemies = false;
 
         // Pokud máme útočníka, otočíme se k němu
-        if (this.combat.lastAttacker) {
-            const attackerUnit = this.game.units.find(unit => unit.combat === this.combat.lastAttacker);
+        if (this.lastAttacker) {
+            // const attackerUnit = this.game.units.find(unit => unit === this.lastAttacker);
+            const attackerUnit = this.lastAttacker;
+            
             if (attackerUnit) {
                 // Vypočítáme směr k útočníkovi
                 const dx = attackerUnit.x - this.x;
@@ -109,7 +111,7 @@ class Unit {
                 
                 // Pokud je útočník v zorném poli, střílíme na něj
                 if (this.vision.isInVisionCone(attackerUnit.x, attackerUnit.y, this.x, this.y)) {
-                    if (this.combat.canShoot()) {
+                    if (this.canShoot()) {
                         this.shoot(attackerUnit);
                         this.view.startFlash();
                     }
@@ -137,8 +139,14 @@ class Unit {
             this.shootCooldown--;
         }
 
-        // Aktualizujeme combat systém
-        this.combat.update();
+        if (this.shootCooldown > 0) {
+            this.shootCooldown--;
+        }
+
+        // Snížíme počáteční zpoždění
+        if (this.initialShotDelay > 0) {
+            this.initialShotDelay--;
+        }
         
         // Aktualizujeme view systém
         this.view.update();
@@ -174,11 +182,14 @@ class Unit {
             
             if (seesEnemy) {
                 // Pokud je jednotka nepřátelská a můžeme střílet
-                if (otherUnit.combat.isEnemy !== this.combat.isEnemy && !otherUnit.combat.isDead) {
+                if (otherUnit.isEnemy !== this.isEnemy && !otherUnit.isDead) {
                     this.hasVisibleEnemies = true;
                     // Nastavíme počáteční zpoždění při prvním spatření nepřítele
-                    this.combat.setInitialDelay();
-                    if (this.combat.canShoot()) {
+                    if (!this.hasSeenEnemy) {
+                        this.initialShotDelay = 120; // 2 sekundy při 60 FPS
+                        this.hasSeenEnemy = true;
+                    }
+                    if (this.canShoot()) {
                         this.shoot(otherUnit);
                         this.view.startFlash(); // Trigger flash effect when shooting
                     }
@@ -307,13 +318,34 @@ class Unit {
         if (this.debugMode) console.log("Unit deselected");
     }
 
-    shoot(targetUnit) {
-        if (this.isDead) return; // Nemůžeme střílet, pokud jsme mrtví
+    canShoot() {
+        return this.shootCooldown === 0 && !this.isDead && this.initialShotDelay === 0;
+    }
 
-        this.combat.shoot(targetUnit);
+
+    shoot(targetUnit) {
+
+        // Zničené jednotky nemohou střílet
+        if (this.isDead) return;
+
+        // Přehráme zvuk výstřelu
+        this.audio.playShootSound();
+
+        // 90% šance na zásah
+        if (Math.random() < 0.9) {
+            // Náhodné poškození 0-100%
+            const damage = Math.random() * 100;
+            targetUnit.recieveDamage(damage);
+            // Uložíme si útočníka
+            targetUnit.lastAttacker = this;
+        }
         
-        // Nastavíme cooldown střelby (60 snímků = 1 sekunda při 60 FPS)
-        this.shootCooldown = 60;
+        // Základní cooldown střelby (180 snímků = 3 sekundy při 60 FPS)
+        const baseCooldown = 180;
+        // Náhodná složka (0-20% navíc)
+        const randomVariation = Math.random() * 0.2;
+        // Celkový cooldown (180-216 snímků = 3-3.6 sekundy)
+        this.shootCooldown = Math.floor(baseCooldown * (1 + randomVariation));
 
         // Calculate angle to target and draw muzzle flash
         const dx = targetUnit.x - this.x;
@@ -331,8 +363,8 @@ class Unit {
     }
 
     isPointInside(x, y) {
-        // Mrtvé jednotky nelze vybrat
-        if (this.combat.isDead) return false;
+        // Zničené jednotky nelze vybrat
+        if (this.isDead) return false;
 
         const dx = x - this.x;
         const dy = y - this.y;
@@ -341,7 +373,7 @@ class Unit {
     
     isInSelectionBox(startX, startY, endX, endY) {
         // Mrtvé jednotky nelze vybrat
-        if (this.combat.isDead) return false;
+        if (this.isDead) return false;
 
         const left = Math.min(startX, endX);
         const right = Math.max(startX, endX);
@@ -352,6 +384,9 @@ class Unit {
     }
 
     moveTo(x, y) {
+        // Zničené jednotky se nemohou pohybovat
+        if (this.isDead) return;
+        
         // Uložíme startovní pozici při zadání nového cíle
         this.startX = this.x;
         this.startY = this.y;

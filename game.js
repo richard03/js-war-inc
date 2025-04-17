@@ -279,7 +279,7 @@ class Game {
         // Update and draw formation if it exists
         if (this.currentFormation) {
             this.currentFormation.update();
-            this.currentFormation.draw(this.view.ctx);
+            // this.currentFormation.draw(this.view.ctx);
         }
             
         // Draw selection box if dragging
