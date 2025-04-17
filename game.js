@@ -1,4 +1,4 @@
-const debugMode = false;
+const debugMode = true;
 
 class Game {
     constructor(cfg = {}) {
@@ -159,10 +159,10 @@ class Game {
                 this.currentFormation.moveTo(x, y);
             } else {
                 // TODO: Nebylo by výhodné chovat se k jedné jednotce jako k formaci?
-                for (const unit of this.selectedUnits) {
+                this.selectedUnits.forEach((unit) => {
                     if (this.debugMode) console.log("Moving unit to [" + x + " : " + y + "]");
                     unit.moveTo(x, y);
-                }
+                });
             }
         });
         
