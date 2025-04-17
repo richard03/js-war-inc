@@ -30,7 +30,7 @@ class Unit {
         this.currentForce = { x: 0, y: 0, magnitude: 0 };
         
         // Vytvoříme instance pomocných systémů
-        this.vision = new UnitVision();
+        this.vision = new UnitVision(this, game.view.ctx);
         this.view = new UnitView(this, game.view.ctx, {
             color: this.isEnemy ? '#ff0000' : '#00ff00'
         });
@@ -85,7 +85,7 @@ class Unit {
         return currentAngle + angleDiff;
     }
 
-    update(units) {
+    update() {
         // Pokud je jednotka zničena, pouze aktualizujeme oheň
         if (this.isDead) {
             this.isOnFire = true; // Zničené jednotky vždy hoří
@@ -97,24 +97,11 @@ class Unit {
 
         // Pokud máme útočníka, otočíme se k němu
         if (this.lastAttacker) {
-            // const attackerUnit = this.game.units.find(unit => unit === this.lastAttacker);
-            const attackerUnit = this.lastAttacker;
+            this.turnToLastAttacker();
             
-            if (attackerUnit) {
-                // Vypočítáme směr k útočníkovi
-                const dx = attackerUnit.x - this.x;
-                const dy = attackerUnit.y - this.y;
-                const angle = Math.atan2(dy, dx);
-                
-                // Nastavíme cílový úhel pohledu
-                this.vision.currentVisionAngle = angle;
-                
-                // Pokud je útočník v zorném poli, střílíme na něj
-                if (this.vision.isInVisionCone(attackerUnit.x, attackerUnit.y, this.x, this.y)) {
-                    if (this.canShoot()) {
-                        this.shoot(attackerUnit);
-                        this.view.startFlash();
-                    }
+            if (this.vision.isInVisionCone(this.lastAttacker.x, this.lastAttacker.y)) {
+                if (this.canShoot()) {
+                    this.shoot(this.lastAttacker);
                 }
             }
         }
@@ -322,14 +309,24 @@ class Unit {
         return this.shootCooldown === 0 && !this.isDead && this.initialShotDelay === 0;
     }
 
+    turnToLastAttacker() {
+        if (this.lastAttacker) {
+            this.vision.faceTarget(this.lastAttacker.x, this.lastAttacker.y);
+        }
+    }
 
     shoot(targetUnit) {
 
         // Zničené jednotky nemohou střílet
         if (this.isDead) return;
 
-        // Přehráme zvuk výstřelu
+        // Přehráme zvuk výstřelu a zobrazíme záblesk
         this.audio.playShootSound();
+
+        const dx = targetUnit.x - this.x;
+        const dy = targetUnit.y - this.y;
+        const angle = Math.atan2(dy, dx);
+        this.view.drawMuzzleFlash(angle);
 
         // 90% šance na zásah
         if (Math.random() < 0.9) {
@@ -347,11 +344,6 @@ class Unit {
         // Celkový cooldown (180-216 snímků = 3-3.6 sekundy)
         this.shootCooldown = Math.floor(baseCooldown * (1 + randomVariation));
 
-        // Calculate angle to target and draw muzzle flash
-        const dx = targetUnit.x - this.x;
-        const dy = targetUnit.y - this.y;
-        const angle = Math.atan2(dy, dx);
-        this.view.drawMuzzleFlash(this.x, this.y, angle);
     }
 
     recieveDamage(damage) {

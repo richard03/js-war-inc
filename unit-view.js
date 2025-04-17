@@ -70,7 +70,7 @@ class UnitView {
         this.flashTimer = this.flashDuration;
     }
 
-    drawMuzzleFlash(x, y, angle) {
+    drawMuzzleFlash(angle) {
         // If there's no active flash, start one
         if (!this.muzzleFlashActive) {
             this.muzzleFlashActive = true;
@@ -85,10 +85,10 @@ class UnitView {
         this.viewContext.lineWidth = 2;
         
         // Calculate end point of the flash
-        const endX = x + Math.cos(this.muzzleFlashAngle) * this.muzzleFlashLength;
-        const endY = y + Math.sin(this.muzzleFlashAngle) * this.muzzleFlashLength;
+        const endX = this.unit.x + Math.cos(this.muzzleFlashAngle) * this.muzzleFlashLength;
+        const endY = this.unit.y + Math.sin(this.muzzleFlashAngle) * this.muzzleFlashLength;
         
-        this.viewContext.moveTo(x, y);
+        this.viewContext.moveTo(this.unit.x, this.unit.y);
         this.viewContext.lineTo(endX, endY);
         this.viewContext.stroke();
         this.viewContext.restore();
