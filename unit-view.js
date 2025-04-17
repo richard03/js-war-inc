@@ -36,10 +36,10 @@ class UnitView {
         // Fire animation properties
         this.fireParticles = [];
         this.smokeParticles = [];
-        this.maxFireParticles = 20;
-        this.maxSmokeParticles = 15;
-        this.fireParticleLifetime = 30;
-        this.smokeParticleLifetime = 60;
+        this.maxFireParticles = 5;
+        this.maxSmokeParticles = 10;
+        this.fireParticleLifetime = 10;
+        this.smokeParticleLifetime = 20;
     }
 
     draw() {
@@ -246,7 +246,6 @@ class UnitView {
             // Update particle position
             particle.x += particle.vx;
             particle.y += particle.vy;
-            particle.vy -= 0.1; // Gravity effect
 
             // Draw particle
             const alpha = particle.lifetime / this.fireParticleLifetime;
@@ -269,8 +268,8 @@ class UnitView {
             // Update particle position and size
             particle.x += particle.vx;
             particle.y += particle.vy;
-            particle.size += 0.2; // Smoke expands
-            particle.vy -= 0.05; // Slower rise than fire
+            particle.size += 0.2;
+            particle.vy -= 0.05;
 
             // Draw particle
             const alpha = particle.lifetime / this.smokeParticleLifetime;
@@ -303,7 +302,7 @@ class UnitView {
             x: this.unit.x,
             y: this.unit.y,
             vx: Math.cos(angle) * speed,
-            vy: -1 - Math.random() * 2, // Upward movement
+            vy: -0.1 - Math.random() * 2,
             size: size,
             color: `${r}, ${g}, ${b}`,
             lifetime: this.fireParticleLifetime
@@ -312,14 +311,14 @@ class UnitView {
 
     addSmokeParticle() {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 0.2 + Math.random() * 0.8;
+        const speed = 0.02 + Math.random() * 0.8;
         const size = 3 + Math.random() * 2;
         
         this.smokeParticles.push({
             x: this.unit.x,
             y: this.unit.y,
             vx: Math.cos(angle) * speed,
-            vy: -0.5 - Math.random(), // Slower upward movement
+            vy: -0.5 - Math.random(),
             size: size,
             lifetime: this.smokeParticleLifetime
         });
