@@ -3,7 +3,7 @@ const debugMode = false;
 class Game {
     constructor(cfg = {}) {
         this.debugMode = typeof cfg.debugMode == "undefined" ? true : cfg.debugMode; // Výchozí hodnota debug módu
-        this.units = [];
+        this.units = new Set();
         this.selectedUnits = new Set();
         this.mousePosition = { x: 0, y: 0 };
         this.isDragging = false;
@@ -82,7 +82,7 @@ class Game {
                 const endY = e.clientY - this.view.boundingClientRectangle.top;
                 
                 // Clear previous selection if shift is not pressed and we started dragging from empty space
-                const clickedUnit = this.units.find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
+                const clickedUnit = Array.from(this.units).find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
                 if (!e.shiftKey && !clickedUnit) {
                     this.clearSelection();
                 }
@@ -235,12 +235,12 @@ class Game {
             unit.currentVisionAngle = friendlyAngle;
             unit.lastVisionAngle = friendlyAngle;
             
-            this.units.push(unit);
+            this.units.add(unit);
         }
 
         // Calculate average friendly position
-        const avgFriendlyX = this.units.reduce((sum, unit) => sum + unit.x, 0) / friendlyUnitCount;
-        const avgFriendlyY = this.units.reduce((sum, unit) => sum + unit.y, 0) / friendlyUnitCount;
+        const avgFriendlyX = Array.from(this.units).reduce((sum, unit) => sum + unit.x, 0) / friendlyUnitCount;
+        const avgFriendlyY = Array.from(this.units).reduce((sum, unit) => sum + unit.y, 0) / friendlyUnitCount;
 
         // Set enemy units to look towards friendly units
         for (const unit of enemyUnits) {
@@ -262,7 +262,7 @@ class Game {
             unit.currentVisionAngle = enemyAngle;
             unit.lastVisionAngle = enemyAngle;
             
-            this.units.push(unit);
+            this.units.add(unit);
         }
     }
     

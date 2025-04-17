@@ -61,6 +61,29 @@ class Unit {
         };
     }
 
+    // Convert angle to be within ±30° of the unit's current direction
+    limitForceAngle(angle) {
+        const currentAngle = this.vision.currentVisionAngle;
+        const maxDeviation = Math.PI / 6; // 30 degrees in radians
+        
+        // Normalize angles to be within -π to π
+        let normalizedAngle = angle;
+        while (normalizedAngle > Math.PI) normalizedAngle -= 2 * Math.PI;
+        while (normalizedAngle < -Math.PI) normalizedAngle += 2 * Math.PI;
+        
+        // Calculate the difference between the target angle and current direction
+        let angleDiff = normalizedAngle - currentAngle;
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        
+        // Limit the angle difference to ±30°
+        if (angleDiff > maxDeviation) angleDiff = maxDeviation;
+        if (angleDiff < -maxDeviation) angleDiff = -maxDeviation;
+        
+        // Return the limited angle
+        return currentAngle + angleDiff;
+    }
+
     update() {
         // Pokud je jednotka mrtvá, neprovádíme žádné aktualizace
         if (this.combat.isDead) return;
@@ -191,7 +214,7 @@ class Unit {
             const forceMagnitude = Math.min(this.maxForce, distance * 0.1);
             
             // Přidáme náhodné kolísání síly (20%)
-            const randomVariation = 1 + (Math.random() - 0.5) * 0.4; // -20% až +20%
+            const randomVariation = 1 + (Math.random() - 0.5) * 0.4; // -30% až +30%
             const variedForceMagnitude = forceMagnitude * randomVariation;
             
             // Základní síla k cíli
@@ -214,6 +237,16 @@ class Unit {
                 this.currentForce.x = (this.currentForce.x / totalForceMagnitude) * this.maxForce;
                 this.currentForce.y = (this.currentForce.y / totalForceMagnitude) * this.maxForce;
             }
+
+            // Calculate the angle of the total force
+            const forceAngle = Math.atan2(this.currentForce.y, this.currentForce.x);
+            
+            // Limit the force angle to ±30° from the unit's current direction
+            const limitedAngle = this.limitForceAngle(forceAngle);
+            
+            // Convert the limited angle back to force components
+            this.currentForce.x = Math.cos(limitedAngle) * totalForceMagnitude;
+            this.currentForce.y = Math.sin(limitedAngle) * totalForceMagnitude;
             
             // Aplikace síly na rychlost
             this.velocity.x += this.currentForce.x / this.mass;
