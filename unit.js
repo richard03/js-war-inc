@@ -38,6 +38,10 @@ class Unit {
         this.view = new UnitView(this, game.view.ctx, {
             color: this.isEnemy ? '#ff0000' : '#00ff00'
         });
+
+        // Formation cohesion properties
+        this.formationCohesionRadius = 50; // Distance to maintain from other units in formation
+        this.formationCohesionForce = 0.5; // Strength of cohesion force
     }
 
     calculateAvoidanceForce(otherUnit, distance) {
@@ -255,6 +259,40 @@ class Unit {
             // Tření
             this.velocity.x *= 0.95;
             this.velocity.y *= 0.95;
+        }
+
+        // Calculate formation cohesion force if in formation
+        if (this.game.currentFormation && this.game.selectedUnits.has(this)) {
+            let cohesionForce = { x: 0, y: 0 };
+            let cohesionCount = 0;
+
+            // Calculate average position of nearby formation units
+            for (const otherUnit of this.game.selectedUnits) {
+                if (otherUnit === this) continue;
+
+                const dx = otherUnit.x - this.x;
+                const dy = otherUnit.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < this.formationCohesionRadius) {
+                    cohesionForce.x += dx;
+                    cohesionForce.y += dy;
+                    cohesionCount++;
+                }
+            }
+
+            if (cohesionCount > 0) {
+                // Normalize and scale cohesion force
+                const magnitude = Math.sqrt(cohesionForce.x * cohesionForce.x + cohesionForce.y * cohesionForce.y);
+                if (magnitude > 0) {
+                    cohesionForce.x = (cohesionForce.x / magnitude) * this.formationCohesionForce;
+                    cohesionForce.y = (cohesionForce.y / magnitude) * this.formationCohesionForce;
+                }
+
+                // Add cohesion force to current force
+                this.currentForce.x += cohesionForce.x;
+                this.currentForce.y += cohesionForce.y;
+            }
         }
     }
 
