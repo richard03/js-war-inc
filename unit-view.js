@@ -43,9 +43,6 @@ class UnitView {
     }
 
     draw() {
-        // Pokud je jednotka mrtvá, nevykreslujeme ji
-        if (this.unit.isDead) return;
-
         // Vykreslíme jednotku
         this.drawUnit(this.viewContext);
         
@@ -234,7 +231,7 @@ class UnitView {
     }
 
     drawFire(ctx) {
-        if (!this.unit.isOnFire) return;
+        if (!this.unit.isOnFire && !this.unit.isDead) return;
 
         // Update and draw fire particles
         for (let i = this.fireParticles.length - 1; i >= 0; i--) {
