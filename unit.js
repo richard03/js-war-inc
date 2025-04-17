@@ -2,8 +2,9 @@
 // physics.js obsahuje fyzikální výpočty pro pohyb jednotek
 
 class Unit {
-    constructor(cfg = {}) {
-        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true;
+    constructor(game, cfg = {}) {
+        this.game = game;
+        this.debugMode = this.game.debugMode;
         this.x = cfg.x;
         this.y = cfg.y;
         this.size = cfg.size || 20;
@@ -13,6 +14,7 @@ class Unit {
         this.startX = this.x;
         this.startY = this.y;
         this.isEnemy = cfg.isEnemy;
+        this.isDead = typeof cfg.isDead == "undefined" ? false : cfg.isDead;
         this.collisionCooldown = cfg.collisionCooldown || 0;
         this.shootCooldown = cfg.shootCooldown || 0;
         this.health = cfg.health || 100;
@@ -33,8 +35,7 @@ class Unit {
             initialShotDelay: this.initialShotDelay,
             health: this.health
         });
-        this.view = new UnitView({
-            debugMode: this.debugMode,
+        this.view = new UnitView(this, game.view.ctx, {
             color: this.isEnemy ? '#ff0000' : '#00ff00'
         });
     }
@@ -60,7 +61,7 @@ class Unit {
         };
     }
 
-    update(units) {
+    update() {
         // Pokud je jednotka mrtvá, neprovádíme žádné aktualizace
         if (this.combat.isDead) return;
 
@@ -69,7 +70,7 @@ class Unit {
 
         // Pokud máme útočníka, otočíme se k němu
         if (this.combat.lastAttacker) {
-            const attackerUnit = units.find(unit => unit.combat === this.combat.lastAttacker);
+            const attackerUnit = this.game.units.find(unit => unit.combat === this.combat.lastAttacker);
             if (attackerUnit) {
                 // Vypočítáme směr k útočníkovi
                 const dx = attackerUnit.x - this.x;
@@ -82,7 +83,7 @@ class Unit {
                 // Pokud je útočník v zorném poli, střílíme na něj
                 if (this.vision.isInVisionCone(attackerUnit.x, attackerUnit.y, this.x, this.y)) {
                     if (this.combat.canShoot()) {
-                        this.combat.shoot(attackerUnit.combat);
+                        this.shoot(attackerUnit);
                         this.view.startFlash();
                     }
                 }
@@ -116,7 +117,7 @@ class Unit {
         this.view.update();
         
         // Kontrolujeme kolize s ostatními jednotkami
-        for (const otherUnit of units) {
+        for (const otherUnit of this.game.units) {
             if (otherUnit === this) continue;
             
             const dx = otherUnit.x - this.x;
@@ -151,7 +152,7 @@ class Unit {
                     // Nastavíme počáteční zpoždění při prvním spatření nepřítele
                     this.combat.setInitialDelay();
                     if (this.combat.canShoot()) {
-                        this.combat.shoot(otherUnit.combat);
+                        this.shoot(otherUnit);
                         this.view.startFlash(); // Trigger flash effect when shooting
                     }
                 }
@@ -224,30 +225,38 @@ class Unit {
         }
     }
 
-    shoot(target) {
-        // 90% šance na zásah
-        if (Math.random() < 0.9) {
-            // Náhodné poškození 0-100%
-            const damage = Math.random() * 100;
-            target.health = Math.max(0, target.health - damage);
-        }
+    select() {
+        this.isSelected = true;
+        if (this.debugMode) console.log("Unit selected");
+        // TODO: Vykreslit indikaci že je jednotka vybraná
+    }
+
+    deselect() {
+        this.isSelected = false;
+        if (this.debugMode) console.log("Unit deselected");
+    }
+
+    shoot(targetUnit) {
+        if (this.isDead) return; // Nemůžeme střílet, pokud jsme mrtví
+
+        this.combat.shoot(targetUnit);
         
         // Nastavíme cooldown střelby (60 snímků = 1 sekunda při 60 FPS)
         this.shootCooldown = 60;
+
+        // Calculate angle to target and draw muzzle flash
+        const dx = targetUnit.x - this.x;
+        const dy = targetUnit.y - this.y;
+        const angle = Math.atan2(dy, dx);
+        this.view.drawMuzzleFlash(this.x, this.y, angle);
     }
 
-    draw(ctx) {
-        // Pokud je jednotka mrtvá, nevykreslujeme ji
-        if (this.combat.isDead) return;
-
-        // Vykreslíme jednotku
-        this.view.drawUnit(ctx, this.x, this.y, this.size, this.isSelected, this.hasVisibleEnemies);
-        
-        // Vykreslíme zrakové pole
-        this.view.drawVision(ctx, this.x, this.y, this.vision);
-
-        // Vykreslíme zdraví
-        this.view.drawHealth(ctx, this.x, this.y, this.size, this.combat.health);
+    recieveDamage(damage) {
+        this.health = Math.max(0, this.health - damage);
+        if (this.health <= 0) {
+            this.isDead = true;
+        }
+        // TODO: Grafický efekt zásahu?
     }
 
     isPointInside(x, y) {
@@ -271,7 +280,7 @@ class Unit {
         return this.x >= left && this.x <= right && this.y >= top && this.y <= bottom;
     }
 
-    moveTo(x, y, selectedUnits = []) {
+    moveTo(x, y) {
         // Uložíme startovní pozici při zadání nového cíle
         this.startX = this.x;
         this.startY = this.y;

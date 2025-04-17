@@ -1,13 +1,11 @@
 class UnitCombat {
     constructor(cfg = {}) {
         this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true;
-        this.shootCooldown = cfg.shootCooldown || 0;
-        this.health = cfg.health || 100;
         this.isEnemy = cfg.isEnemy;
-        this.isDead = cfg.isDead || false;
         this.initialShotDelay = cfg.initialShotDelay || 0;
+        this.shootCooldown = cfg.shootCooldown || 0;
         this.hasSeenEnemy = false;
-        this.audio = new AudioSystem();
+        this.audio = new AudioSystem({debugMode: this.debugMode});
         this.lastAttacker = null;
     }
 
@@ -21,17 +19,9 @@ class UnitCombat {
         if (this.initialShotDelay > 0) {
             this.initialShotDelay--;
         }
-
-        // Kontrola smrti
-        if (this.health <= 0) {
-            this.isDead = true;
-            this.health = 0;
-        }
     }
 
-    shoot(target) {
-        // Nemůžeme střílet, pokud jsme mrtví nebo máme počáteční zpoždění
-        if (this.isDead || this.initialShotDelay > 0) return;
+    shoot(targetUnit) {
 
         // Přehráme zvuk výstřelu
         this.audio.playShootSound();
@@ -40,9 +30,9 @@ class UnitCombat {
         if (Math.random() < 0.9) {
             // Náhodné poškození 0-100%
             const damage = Math.random() * 100;
-            target.health = Math.max(0, target.health - damage);
+            targetUnit.recieveDamage(damage);
             // Uložíme si útočníka
-            target.lastAttacker = this;
+            targetUnit.lastAttacker = this;
         }
         
         // Základní cooldown střelby (180 snímků = 3 sekundy při 60 FPS)
@@ -63,27 +53,5 @@ class UnitCombat {
             this.initialShotDelay = 120; // 2 sekundy při 60 FPS
             this.hasSeenEnemy = true;
         }
-    }
-
-    drawHealth(ctx, x, y, size) {
-        // Health bar
-        const healthBarWidth = 20;
-        const healthBarHeight = 4;
-        const healthBarX = x - healthBarWidth / 2;
-        const healthBarY = y - size - 8;
-        
-        // Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-        
-        // Health
-        ctx.fillStyle = this.health > 50 ? '#00ff00' : this.health > 25 ? '#ffff00' : '#ff0000';
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (this.health / 100), healthBarHeight);
-        
-        // Health text
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${Math.round(this.health)}%`, x, y - size - 20);
     }
 } 

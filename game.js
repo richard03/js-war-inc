@@ -1,23 +1,18 @@
 const debugMode = false;
 
 class Game {
-    constructor(cfg) {
-        this.debugMode = typeof cfg.debugMode == "undefined" ? cfg.debugMode : true; // Výchozí hodnota debug módu
-        this.gameView = new GameView();
+    constructor(cfg = {}) {
+        this.debugMode = typeof cfg.debugMode == "undefined" ? true : cfg.debugMode; // Výchozí hodnota debug módu
         this.units = [];
         this.selectedUnits = new Set();
         this.mousePosition = { x: 0, y: 0 };
         this.isDragging = false;
-        this.dragStart = { x: 0, y: 0 };
-        this.dragEnd = { x: 0, y: 0 };
-        this.hasMoved = false;  // Track if mouse has moved since mousedown
+        this.dragStart = null;
+        this.dragEnd = null;
         this.formations = new Map();
         this.currentFormation = null;
-        this.terrain = new Terrain({
-            canvasWidth: this.gameView.canvas.width,
-            canvasHeight: this.gameView.canvas.height,
-            debugMode: this.debugMode
-        });
+        this.view = new GameView(this);
+        this.terrain = new Terrain(this);
         
         // Inicializace v správném pořadí
         this.resizeCanvas();
@@ -29,13 +24,13 @@ class Game {
     }
     
     resizeCanvas() {
-        this.gameView.canvas.width = window.innerWidth;
-        this.gameView.canvas.height = window.innerHeight;
+        this.view.canvas.width = window.innerWidth;
+        this.view.canvas.height = window.innerHeight;
         
         // Aktualizujeme rozměry canvasu u všech jednotek
         for (const unit of this.units) {
-            unit.canvasWidth = this.gameView.canvas.width;
-            unit.canvasHeight = this.gameView.canvas.height;
+            unit.canvasWidth = this.view.canvas.width;
+            unit.canvasHeight = this.view.canvas.height;
         }
     }
     
@@ -44,64 +39,47 @@ class Game {
         
         // Add Escape key listener
         window.addEventListener('keydown', (e) => {
+            // Zrušení výběru
             if (e.key === 'Escape') {
                 this.clearSelection();
+            }
+            // Přepnutí debug módu
+            if (event.key === 'd' || event.key === 'D') {
+                this.debugMode = !this.debugMode;
+                // Aktualizujeme debug mód u všech jednotek
+                for (const unit of this.units) {
+                    unit.view.debugMode = this.debugMode;
+                }
+                // Přepnutí debug módu u terénu
+                this.terrain.debugMode = this.debugMode;
             }
         });
         
         window.addEventListener('mousedown', (e) => {
-            // Handle right click to clear selection
-            if (e.button === 2) { // Right mouse button
-                this.clearSelection();
-                return;
-            }
-            
-            const x = e.clientX - this.gameView.canvasLeft;
-            const y = e.clientY - this.gameView.canvasTop;
-            
-            this.isDragging = true;
-            this.hasMoved = false;
             this.dragStart = { x: e.clientX, y: e.clientY };
-            
-            // Check if we clicked on a friendly unit
-            const clickedUnit = this.units.find(unit => unit.isPointInside(x, y) && !unit.isEnemy);
-            
-            if (clickedUnit) {
-                // If shift is not pressed, clear previous selection
-                if (!e.shiftKey) {
-                    this.clearSelection();
-                }
-                
-                clickedUnit.isSelected = true;
-                if (!this.selectedUnits.has(clickedUnit)) {
-                    this.selectedUnits.add(clickedUnit);
-                }
-                
-                // If we have more than one unit selected, create a formation
-                if (this.selectedUnits.size > 1) {
-                    this.currentFormation = new Formation(Array.from(this.selectedUnits));
-                }
-            }
         });
 
         window.addEventListener('mousemove', (e) => {
-            if (this.isDragging) {
+            
+            if (this.dragStart) {
                 // Mark that the mouse has moved during drag
                 const dx = e.clientX - this.dragStart.x;
                 const dy = e.clientY - this.dragStart.y;
                 if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                    this.hasMoved = true;
+                    this.isDragging = true;
+                } else {
+                    this.isDragging = false;
                 }
             }
             
             this.mousePosition = { x: e.clientX, y: e.clientY };
             
             // If dragging, select units within the selection box
-            if (this.isDragging && this.hasMoved) {
-                const startX = this.dragStart.x - this.gameView.canvasLeft;
-                const startY = this.dragStart.y - this.gameView.canvasTop;
-                const endX = e.clientX - this.gameView.canvasLeft;
-                const endY = e.clientY - this.gameView.canvasTop;
+            if (this.isDragging) {
+                const startX = this.dragStart.x - this.view.canvasLeft;
+                const startY = this.dragStart.y - this.view.canvasTop;
+                const endX = e.clientX - this.view.boundingClientRectangle.left;
+                const endY = e.clientY - this.view.boundingClientRectangle.top;
                 
                 // Clear previous selection if shift is not pressed and we started dragging from empty space
                 const clickedUnit = this.units.find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
@@ -109,17 +87,10 @@ class Game {
                     this.clearSelection();
                 }
                 
-                // Select friendly units within the selection box
-                for (const unit of this.units) {
-                    if (!unit.isEnemy && unit.isInSelectionBox(startX, startY, endX, endY)) {
-                        unit.isSelected = true;
-                        if (!this.selectedUnits.has(unit)) {
-                            this.selectedUnits.add(unit);
-                        }
-                    }
-                }
+                
                 
                 // Create formation if multiple units are selected
+                // TODO: toto asi není potřeba, formace se vytvoří při puštění tlačítka (mouseup)
                 if (this.selectedUnits.size > 1) {
                     this.currentFormation = new Formation(Array.from(this.selectedUnits));
                 }
@@ -127,27 +98,76 @@ class Game {
         });
 
         window.addEventListener('mouseup', (e) => {
-            const x = e.clientX - this.gameView.canvasLeft;
-            const y = e.clientY - this.gameView.canvasTop;
+            if (this.debugMode) console.log("Mouse up");
+            const x = e.clientX - this.view.boundingClientRectangle.left;
+            const y = e.clientY - this.view.boundingClientRectangle.top;
             
-            // If we didn't move during drag and clicked on empty space, move units
-            if (!this.hasMoved && this.selectedUnits.size > 0) {
-                const clickedUnit = this.units.find(unit => unit.isPointInside(x, y));
-                if (!clickedUnit) {
-                    if (this.currentFormation) {
-                        this.currentFormation.moveTo(x, y);
-                    } else {
-                        this.moveSelectedUnitsTo(x, y);
+            // Handle right click to clear selection
+            if (e.button === 2) { // Right mouse button
+                this.clearSelection();
+                this.dragStart = null;
+                this.isDragging = false;
+                return;
+            }
+
+            // Left mouse button
+            if (this.debugMode) console.log("Left mouse button");
+
+            // Výběr oblasti myší
+            if (this.isDragging) {
+                // Select friendly units within the selection box
+                for (const unit of this.units) {
+                    if (!unit.isEnemy && unit.isInSelectionBox(this.dragStart.x, this.dragStart.y, x, y)) {
+                        unit.select();
+                        this.selectedUnits.add(unit);
                     }
                 }
+                if (this.selectedUnits.size > 1) {
+                    this.currentFormation = new Formation(Array.from(this.selectedUnits));
+                }
+                if (this.debugMode) console.log("Drag end");
+                this.dragStart = null;
+                this.isDragging = false;
+                return;
             }
-            
-            this.isDragging = false;
-            this.hasMoved = false;
+
+            this.dragStart = null;
+
+            // Kliknutí na jednotku
+            for (const unit of this.units) {
+                if (unit.isPointInside(x, y) && !unit.isEnemy) {
+                    
+                    if (!e.shiftKey) { // standardní výběr jednotky
+                        this.clearSelection();
+                        unit.select();
+                        this.selectedUnits.add(unit);
+                    } else { // shift key is pressed
+                        this.selectedUnits.add(unit);
+                        unit.select();
+                        if (this.selectedUnits.size > 1) {
+                            this.currentFormation = new Formation(Array.from(this.selectedUnits));
+                        }
+                    }
+                    if (this.debugMode) console.log("Selected a friendly unit");
+                    return;
+                }
+            }
+
+            // Kliknutí na mapu
+            if (this.debugMode) console.log("Clicked on map");
+            if (this.currentFormation) {
+                this.currentFormation.moveTo(x, y);
+            } else {
+                // TODO: Nebylo by výhodné chovat se k jedné jednotce jako k formaci?
+                for (const unit of this.selectedUnits) {
+                    if (this.debugMode) console.log("Moving unit to [" + x + " : " + y + "]");
+                    unit.moveTo(x, y);
+                }
+            }
         });
         
         // Prevent context menu on right click
-        this.gameView.canvas.addEventListener('contextmenu', (e) => {
+        this.view.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
     }
@@ -155,16 +175,16 @@ class Game {
     createInitialUnits() {
         // Create friendly units in bottom left
         const friendlyUnitCount = 5;
-        const friendlyAreaWidth = this.gameView.canvas.width * 0.3; // 30% of screen width
-        const friendlyAreaHeight = this.gameView.canvas.height * 0.3; // 30% of screen height
+        const friendlyAreaWidth = this.view.canvas.width * 0.3; // 30% of screen width
+        const friendlyAreaHeight = this.view.canvas.height * 0.3; // 30% of screen height
         const friendlyStartX = 0;
-        const friendlyStartY = this.gameView.canvas.height - friendlyAreaHeight;
+        const friendlyStartY = this.view.canvas.height - friendlyAreaHeight;
 
         // Create enemy units in top right first
         const enemyUnitCount = 3;
-        const enemyAreaWidth = this.gameView.canvas.width * 0.3; // 30% of screen width
-        const enemyAreaHeight = this.gameView.canvas.height * 0.3; // 30% of screen height
-        const enemyStartX = this.gameView.canvas.width - enemyAreaWidth;
+        const enemyAreaWidth = this.view.canvas.width * 0.3; // 30% of screen width
+        const enemyAreaHeight = this.view.canvas.height * 0.3; // 30% of screen height
+        const enemyStartX = this.view.canvas.width - enemyAreaWidth;
         const enemyStartY = 0;
 
         const enemyUnits = [];
@@ -172,7 +192,7 @@ class Game {
             // Random position within the top right area
             const x = enemyStartX + Math.random() * enemyAreaWidth;
             const y = enemyStartY + Math.random() * enemyAreaHeight;
-            const unit = new Unit({
+            const unit = new Unit(this, {
                 x: x,
                 y: y,
                 isEnemy: true,
@@ -190,7 +210,7 @@ class Game {
             // Random position within the bottom left area
             const x = friendlyStartX + Math.random() * friendlyAreaWidth;
             const y = friendlyStartY + Math.random() * friendlyAreaHeight;
-            const unit = new Unit({
+            const unit = new Unit(this, {
                 x: x,
                 y: y,
                 isEnemy: false,
@@ -246,115 +266,38 @@ class Game {
         }
     }
     
-    selectUnitAt(x, y) {
-        // Deselect all units first
-        for (const unit of this.units) {
-            unit.isSelected = false;
-        }
-        this.selectedUnits.clear();
-        this.currentFormation = null;
-        
-        // Select the clicked unit
-        for (const unit of this.units) {
-            if (unit.isPointInside(x, y)) {
-                unit.isSelected = true;
-                this.selectedUnits.add(unit);
-                break;
-            }
-        }
-    }
+    gameLoop() {
     
-    moveSelectedUnitsTo(x, y) {
-        if (this.currentFormation) {
-            this.currentFormation.moveTo(x, y);
-        } else {
-            for (const unit of this.selectedUnits) {
-                unit.moveTo(x, y);
-            }
-        }
-    }
-    
-    draw() {
-        // Clear canvas
-        this.gameView.clear();
-
-        // Draw terrain
-        this.terrain.draw(this.gameView.ctx);
-        
-        // Update and draw units
+        // Update units
         for (const unit of this.units) {
-            unit.update(this.units);
-            unit.draw(this.gameView.ctx);
+            unit.update();
         }
-        
+            
+        // Draw all units and terrain
+        this.view.draw();
+            
         // Update and draw formation if it exists
         if (this.currentFormation) {
             this.currentFormation.update();
-            this.currentFormation.draw(this.gameView.ctx);
+            this.currentFormation.draw(this.view.ctx);
         }
-        
+            
         // Draw selection box if dragging
         if (this.isDragging) {
-            this.gameView.drawSelectBox(this.dragStart.x, this.dragStart.y, this.mousePosition.x, this.mousePosition.y);
+            this.view.drawSelectBox(this.dragStart.x, this.dragStart.y, this.mousePosition.x, this.mousePosition.y);
         }
-    }
-    
-    gameLoop() {
-        this.draw();
+
         requestAnimationFrame(() => this.gameLoop());
     }
     
     clearSelection() {
         for (const unit of this.units) {
-            unit.isSelected = false;
+            unit.deselect();
         }
         this.selectedUnits.clear();
         this.currentFormation = null;
     }
 
-    handleClick(x, y) {
-        // Pokud je aktivní výběr, přesuneme vybrané jednotky
-        if (this.selectionBox.isActive) {
-            const selectedUnits = this.units.filter(unit => unit.isSelected);
-            if (selectedUnits.length > 0) {
-                // Pro každou vybranou jednotku nastavíme cíl s ohledem na formaci
-                selectedUnits.forEach(unit => {
-                    unit.moveTo(x, y, selectedUnits);
-                });
-            }
-            this.selectionBox.isActive = false;
-        } else {
-            // Kontrola, zda jsme klikli na jednotku
-            const clickedUnit = this.units.find(unit => unit.isPointInside(x, y));
-            
-            if (clickedUnit) {
-                // Pokud je stisknutý Shift, přidáme jednotku k výběru
-                if (this.isShiftPressed) {
-                    clickedUnit.isSelected = !clickedUnit.isSelected;
-                } else {
-                    // Jinak vybereme pouze tuto jednotku
-                    this.units.forEach(unit => unit.isSelected = false);
-                    clickedUnit.isSelected = true;
-                }
-            } else {
-                // Pokud jsme klikli na prázdné místo a není stisknutý Shift, zrušíme výběr
-                if (!this.isShiftPressed) {
-                    this.units.forEach(unit => unit.isSelected = false);
-                }
-            }
-        }
-    }
-
-    handleKeyDown(event) {
-        // Přepínání debug módu pomocí klávesy D
-        if (event.key === 'd' || event.key === 'D') {
-            this.debugMode = !this.debugMode;
-            // Aktualizujeme debug mód u všech jednotek
-            for (const unit of this.units) {
-                unit.view.debugMode = this.debugMode;
-            }
-        }
-    }
 }
 
 // Start the game when the page loads

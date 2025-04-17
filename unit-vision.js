@@ -8,32 +8,6 @@ class UnitVision {
         this.seesObstacle = false;
     }
 
-    // Vykreslí zorné pole
-    draw(ctx, unitX, unitY) {
-        // Vykreslíme zorné pole
-        ctx.beginPath();
-        ctx.moveTo(unitX, unitY);
-        
-        // Vypočítáme koncové body zorného pole
-        const startAngle = this.currentVisionAngle - this.visionConeAngle / 2;
-        const endAngle = this.currentVisionAngle + this.visionConeAngle / 2;
-        
-        // Vykreslíme oblouk zorného pole
-        ctx.arc(unitX, unitY, this.visionRange, startAngle, endAngle);
-        
-        // Vrátíme se zpět do středu
-        ctx.lineTo(unitX, unitY);
-        
-        // Vyplníme zorné pole
-        ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
-        ctx.fill();
-        
-        // Vykreslíme hranice zorného pole
-        ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    }
-
     // Aktualizuje směr pohledu
     updateVisionAngle(startX, startY, targetX, targetY) {
         // Vypočítáme směr pohledu z počáteční pozice k cíli
