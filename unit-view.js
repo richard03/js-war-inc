@@ -28,6 +28,10 @@ class UnitView {
         this.muzzleFlashDuration = cfg.muzzleFlashDuration || 3;
         this.muzzleFlashLength = cfg.muzzleFlashLength || 20;
         this.muzzleFlashAngle = cfg.muzzleFlashAngle || 0;
+
+        // Load vehicle sprite
+        this.vehicleSprite = new Image();
+        this.vehicleSprite.src = 'assets/sprites/vehicle.png';
     }
 
     draw() {
@@ -99,16 +103,39 @@ class UnitView {
     }
 
     drawUnit(x, y, size, isSelected, hasVisibleEnemies) {
-        // Draw unit circle
-        this.viewContext.beginPath();
-        this.viewContext.arc(x, y, size, 0, Math.PI * 2);
+        // Draw vehicle sprite
+        this.viewContext.save();
         
-        // Use flash color if active, otherwise use current color
-        this.viewContext.fillStyle = this.flashActive ? this.flashColor : this.currentColor;
-        this.viewContext.fill();
+        // Move to the center of the unit
+        this.viewContext.translate(x, y);
         
+        // Rotate based on vision angle + 90 degrees
+        this.viewContext.rotate(this.unit.vision.currentVisionAngle + Math.PI/2);
+        
+        // Calculate dimensions while maintaining aspect ratio
+        const spriteWidth = this.vehicleSprite.naturalWidth;
+        const spriteHeight = this.vehicleSprite.naturalHeight;
+        const aspectRatio = spriteWidth / spriteHeight;
+        
+        // Use height as base and calculate width to maintain aspect ratio
+        const displayHeight = size * 2;
+        const displayWidth = displayHeight * aspectRatio;
+        
+        // Draw the sprite centered and scaled
+        this.viewContext.drawImage(
+            this.vehicleSprite,
+            -displayWidth/2, // Center horizontally
+            -displayHeight/2, // Center vertically
+            displayWidth,
+            displayHeight
+        );
+        
+        this.viewContext.restore();
+
         // Draw selection border if selected
         if (isSelected) {
+            this.viewContext.beginPath();
+            this.viewContext.arc(x, y, size, 0, Math.PI * 2);
             this.viewContext.strokeStyle = this.selectedColor;
             this.viewContext.lineWidth = 3;
             this.viewContext.stroke();
