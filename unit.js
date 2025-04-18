@@ -23,6 +23,8 @@ class Unit {
         this.lastAttacker = null;
         this.seesObstacle = false;
         
+        // Konstanty pro pohyb a cílení
+        this.TARGET_RADIUS = 20; // Poloměr, ve kterém považujeme jednotku za "u cíle"
         
         // Fyzikální vlastnosti
         this.mass = cfg.mass || 1;
@@ -96,6 +98,11 @@ class Unit {
         // Resetujeme stav viditelnosti nepřátel
         this.hasVisibleEnemies = false;
 
+        // Výpočet vzdálenosti k cíli
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
         // Pokud máme útočníka, otočíme se k němu
         if (this.lastAttacker && !this.lastAttacker.isDead) {
             this.turnToLastAttacker();
@@ -105,11 +112,11 @@ class Unit {
                     this.shoot(this.lastAttacker);
                 }
             }
-        } else {
-            // Aktualizujeme směr pohledu pouze pokud nemáme útočníka
+        } else if (distance > this.TARGET_RADIUS) {
+            // Aktualizujeme směr pohledu pouze pokud nemáme útočníka a nejsme u cíle
             this.vision.updateVisionAngle(this.targetX, this.targetY);
         }
-
+        
         // Aktualizujeme pozici
         this.x += this.velocity.x;
         this.y += this.velocity.y;
@@ -209,19 +216,32 @@ class Unit {
             }
         }
         
-        // Výpočet vzdálenosti k cíli
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Fuzzy logika pro detekci dosažení cíle
+        const MIN_DISTANCE_CHANGE = 1; // Minimální změna vzdálenosti pro detekci vzdalování
         
-        // Kontrola, zda jsme v cíli
-        if (distance < 10) {
-            // Jsme v cíli, zastavíme se
-            this.velocity = { x: 0, y: 0 };
-            this.currentForce = { x: 0, y: 0, magnitude: 0 };
-            this.x = this.targetX;
-            this.y = this.targetY;
-            return;
+        // Pokud jsme blízko cíle
+        if (distance < this.TARGET_RADIUS) {
+            // Pokud nemáme uloženou předchozí vzdálenost, uložíme ji
+            if (typeof this.previousDistance === 'undefined') {
+                this.previousDistance = distance;
+            }
+            
+            // Pokud se začínáme vzdalovat od cíle
+            if (distance > this.previousDistance + MIN_DISTANCE_CHANGE) {
+                // Zastavíme se na aktuální pozici
+                this.velocity = { x: 0, y: 0 };
+                this.currentForce = { x: 0, y: 0, magnitude: 0 };
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.previousDistance = undefined;
+                return;
+            }
+            
+            // Aktualizujeme předchozí vzdálenost
+            this.previousDistance = distance;
+        } else {
+            // Resetujeme předchozí vzdálenost, když jsme mimo zónu
+            this.previousDistance = undefined;
         }
         
         // Výpočet směru k cíli
