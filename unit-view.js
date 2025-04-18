@@ -44,16 +44,17 @@ class UnitView {
 
     draw() {
         // Vykreslíme jednotku
-        this.drawUnit(this.viewContext);
+        this.drawUnit();
         
-        // Vykreslíme zrakové pole
-        this.drawVision(this.viewContext);
 
         // Vykreslíme zdraví
-        this.drawHealth(this.viewContext);
+        this.drawHealth();
 
         // Vykreslíme oheň
-        this.drawFire(this.viewContext);
+        this.drawFire();
+
+        // Vykreslíme debug info
+        this.drawDebugInfo();
     }
 
     update() {
@@ -100,17 +101,24 @@ class UnitView {
         }
     }
 
-    drawExclamationMark(x, y, size) {
-        this.viewContext.save();
-        this.viewContext.fillStyle = 'black';
-        this.viewContext.font = `${size * 1.5}px Arial`;
-        this.viewContext.textAlign = 'center';
-        this.viewContext.textBaseline = 'middle';
-        this.viewContext.fillText('!', x, y);
-        this.viewContext.restore();
+    drawExclamationMark() {
+        const x = this.unit.x
+        const y = this.unit.y
+        const size = 10
+        const ctx = this.viewContext;
+
+        ctx.save();
+        ctx.fillStyle = 'black';
+        ctx.font = `${size * 1.5}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('!', x, y);
+        ctx.restore();
     }
 
-    drawUnit(ctx) {
+    drawUnit() {
+        const ctx = this.viewContext;
+
         // Pokud je jednotka zničena, vykreslíme ji s nižší průhledností
         if (this.unit.isDead) {
             ctx.save();
@@ -118,7 +126,7 @@ class UnitView {
         }
 
         // Vykreslíme vozidlo
-        this.drawVehicleSprite(ctx);
+        this.drawVehicleSprite();
         
         if (this.unit.isDead) {
             ctx.restore();
@@ -126,16 +134,18 @@ class UnitView {
 
         // Vykreslíme oheň pokud je jednotka v ohni nebo zničena
         if (this.unit.isOnFire || this.unit.isDead) {
-            this.drawFire(ctx);
+            this.drawFire();
         }
         
         // Draw exclamation mark in debug mode if unit sees enemies
         if (this.debugMode && this.unit.hasVisibleEnemies) {
-            this.drawExclamationMark(this.unit.x, this.unit.y, 10);
+            this.drawExclamationMark();
         }
     }
 
-    drawVehicleSprite(ctx) {
+    drawVehicleSprite() {
+        const ctx = this.viewContext;
+
         ctx.save();
         
         // Move to the center of the unit
@@ -174,9 +184,11 @@ class UnitView {
         }
     }
 
-    drawHealth(ctx) {
+    drawHealth() {
         // U zničených jednotek nevykreslujeme zdraví
         if (this.unit.isDead) return;
+
+        const ctx = this.viewContext;
 
         // Health bar dimensions
         const healthBarWidth = 20;
@@ -202,59 +214,10 @@ class UnitView {
         ctx.fillText(`${Math.round(this.unit.health)}%`, this.unit.x, this.unit.y - this.unit.size - 20);
     }
 
-    drawVision(ctx) {
-         // U zničených jednotek nevykreslujeme zrakové pole
-         if (this.unit.isDead) return;
-
-         // Vykreslíme zrakové pole pouze v debug módu
-         if (!this.debugMode) return;
-
-        // Draw vision cone
-        this.viewContext.save();
-        this.viewContext.beginPath();
-        this.viewContext.moveTo(this.unit.x, this.unit.y);
-        
-        // Vypočítáme koncové body kužele
-        const startAngle = this.unit.vision.currentVisionAngle - this.unit.vision.visionConeAngle / 2;
-        const endAngle = this.unit.vision.currentVisionAngle + this.unit.vision.visionConeAngle / 2;
-        // Vykreslíme oblouk
-        this.viewContext.arc(this.unit.x, this.unit.y, this.unit.vision.visionRange, startAngle, endAngle);
-
-        // Vrátíme se zpět do středu
-        this.viewContext.lineTo(this.unit.x, this.unit.y);
-        // Nastavíme barvu a průhlednost
-        this.viewContext.fillStyle = this.visionColor;
-        this.viewContext.fill();
-        this.viewContext.restore();
-
-        // Draw vision direction arrow
-        const arrowLength = this.unit.vision.visionRange;
-        const angle = this.unit.vision.currentVisionAngle;
-        const endX = this.unit.x + Math.cos(angle) * arrowLength;
-        const endY = this.unit.y + Math.sin(angle) * arrowLength;
-
-        ctx.strokeStyle = 'rgba(0, 0, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(this.unit.x, this.unit.y);
-        ctx.lineTo(endX, endY);
-        
-        // Draw arrow head
-        const arrowSize = 10;
-        ctx.lineTo(
-            endX - arrowSize * Math.cos(angle - Math.PI / 6),
-            endY - arrowSize * Math.sin(angle - Math.PI / 6)
-        );
-        ctx.moveTo(endX, endY);
-        ctx.lineTo(
-            endX - arrowSize * Math.cos(angle + Math.PI / 6),
-            endY - arrowSize * Math.sin(angle + Math.PI / 6)
-        );
-        ctx.stroke();
-    }
-
-    drawFire(ctx) {
+    drawFire() {
         if (!this.unit.isOnFire && !this.unit.isDead) return;
+
+        const ctx = this.viewContext;
 
         // Update and draw fire particles
         for (let i = this.fireParticles.length - 1; i >= 0; i--) {
@@ -345,5 +308,98 @@ class UnitView {
             size: size,
             lifetime: this.smokeParticleLifetime
         });
+    }
+
+    drawDebugVision() {
+        // U zničených jednotek nevykreslujeme zrakové pole
+        if (this.unit.isDead) return;
+
+        // Vykreslíme zrakové pole pouze v debug módu
+        if (!this.debugMode) return;
+
+        const ctx = this.viewContext;
+
+       // Draw vision cone
+       ctx.save();
+       ctx.beginPath();
+       ctx.moveTo(this.unit.x, this.unit.y);
+       
+       // Vypočítáme koncové body kužele
+       const startAngle = this.unit.vision.currentVisionAngle - this.unit.vision.visionConeAngle / 2;
+       const endAngle = this.unit.vision.currentVisionAngle + this.unit.vision.visionConeAngle / 2;
+       // Vykreslíme oblouk
+       this.viewContext.arc(this.unit.x, this.unit.y, this.unit.vision.visionRange, startAngle, endAngle);
+
+       // Vrátíme se zpět do středu
+       this.viewContext.lineTo(this.unit.x, this.unit.y);
+       // Nastavíme barvu a průhlednost
+       this.viewContext.fillStyle = this.visionColor;
+       this.viewContext.fill();
+       this.viewContext.restore();
+
+       // Draw vision direction arrow
+       const arrowLength = this.unit.vision.visionRange;
+       const angle = this.unit.vision.currentVisionAngle;
+       const endX = this.unit.x + Math.cos(angle) * arrowLength;
+       const endY = this.unit.y + Math.sin(angle) * arrowLength;
+
+       ctx.strokeStyle = 'rgba(0, 0, 255, 0.3)';
+       ctx.lineWidth = 2;
+       ctx.beginPath();
+       ctx.moveTo(this.unit.x, this.unit.y);
+       ctx.lineTo(endX, endY);
+       
+       // Draw arrow head
+       const arrowSize = 10;
+       ctx.lineTo(
+           endX - arrowSize * Math.cos(angle - Math.PI / 6),
+           endY - arrowSize * Math.sin(angle - Math.PI / 6)
+       );
+       ctx.moveTo(endX, endY);
+       ctx.lineTo(
+           endX - arrowSize * Math.cos(angle + Math.PI / 6),
+           endY - arrowSize * Math.sin(angle + Math.PI / 6)
+       );
+       ctx.stroke();
+   }
+
+    drawDebugInfo() {
+
+        // Vykreslíme zrakové pole
+        this.drawDebugVision();
+
+        // Získáme výšku terénu pod jednotkou
+        const tileX = Math.floor(this.unit.x / this.unit.game.terrain.tileSize);
+        const tileY = Math.floor(this.unit.y / this.unit.game.terrain.tileSize);
+        const terrainHeight = this.unit.game.terrain.terrainMap[tileY][tileX];
+        
+        // Vykreslíme výšku nad jednotkou
+        this.viewContext.save();
+        this.viewContext.font = '12px Arial';
+        this.viewContext.fillStyle = '#ffffff';
+        this.viewContext.strokeStyle = '#000000';
+        this.viewContext.lineWidth = 2;
+        
+        const text = `Terén: ${terrainHeight.toFixed(2)}`;
+        const textWidth = this.viewContext.measureText(text).width;
+        
+        // Vykreslíme pozadí pro lepší čitelnost
+        this.viewContext.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.viewContext.fillRect(
+            this.unit.x - textWidth / 2 - 5,
+            this.unit.y - this.unit.size - 20,
+            textWidth + 10,
+            20
+        );
+        
+        // Vykreslíme text
+        this.viewContext.fillStyle = '#ffffff';
+        this.viewContext.fillText(
+            text,
+            this.unit.x - textWidth / 2,
+            this.unit.y - this.unit.size - 5
+        );
+        
+        this.viewContext.restore();
     }
 } 

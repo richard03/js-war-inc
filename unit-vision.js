@@ -8,7 +8,7 @@ if (typeof require == 'function') {
 class UnitVision {
     constructor(unit, cfg = {}) {
         this.unit = unit;
-        this.visionRange = cfg.visionRange || 800;
+        this.visionRange = cfg.visionRange || 400;
         this.visionConeAngle = cfg.visionConeAngle || Math.PI * 2/3;
         this.currentVisionAngle = this.visionConeAngle;
         this.targetVisionAngle = this.visionConeAngle;

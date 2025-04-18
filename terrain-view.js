@@ -19,7 +19,7 @@ class TerrainView {
     getColor(height) {
         // Barvy pro různé výšky (tmavší odstíny)
         const colors = [
-            { height: 0.0, color: '#1a3300' },   // Velmi tmavá zelená (nížina)
+            { height: 0.0, color: '#112266' },   // Modrá (voda)
             { height: 0.3, color: '#2d4d00' },   // Tmavá zelená
             { height: 0.5, color: '#3d6600' },   // Střední zelená
             { height: 0.7, color: '#4d3300' },   // Tmavá hnědá
