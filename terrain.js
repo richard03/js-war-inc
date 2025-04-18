@@ -15,16 +15,16 @@ class Terrain {
     // Generování výškové mapy pomocí Perlinova šumu
     generateTerrainMap() {
         const terrainMap = new Array(this.mapHeight);
-        const scale = 0.02;
-        const persistence = 0.7;
-        const octaves = 5;
-
+        const scale = 0.02; // scale is the distance between the points on the map
+        const persistence = 0.7; // persistence is the amplitude of the noise
+        const octaves = 5; // octaves is the number of noise layers
+        
         for (let y = 0; y < this.mapHeight; y++) {
             terrainMap[y] = new Array(this.mapWidth);
             for (let x = 0; x < this.mapWidth; x++) {
-                let amplitude = 1;
-                let frequency = 1;
-                let noiseHeight = 0;
+                let amplitude = 1; // amplitude je výška šumu
+                let frequency = 1; // frequency je frekvence šumu
+                let noiseHeight = 0; // noiseHeight je výsledná výška šumu. Narozdíl od amplitude, maximální hodnota noiseHeight je 1.
 
                 for (let i = 0; i < octaves; i++) {
                     const sampleX = (x + this.xOffset) * scale * frequency;
@@ -37,8 +37,28 @@ class Terrain {
                     frequency *= 2;
                 }
 
+                // Normalizace výšky na rozsah 0-1
                 noiseHeight = (noiseHeight + 1) / 2;
-                terrainMap[y][x] = noiseHeight;
+                
+                // Výpočet vzdálenosti od nejbližšího okraje
+                const distanceFromEdge = Math.min(
+                    x,                          // vzdálenost od levého okraje
+                    this.mapWidth - x - 1,      // vzdálenost od pravého okraje
+                    y,                          // vzdálenost od horního okraje
+                    this.mapHeight - y - 1      // vzdálenost od dolního okraje
+                );
+                
+                // Faktor pro snížení výšky u okrajů
+                // Záměrem je, aby u okrajů byla vždy voda.
+                let heightFactor = Math.sqrt(distanceFromEdge) / 5;
+                if (heightFactor > 1) {
+                    heightFactor = 1;
+                }
+                
+                // Aplikace faktoru na výšku
+                // U okrajů bude výška nižší (blíže k vodě)
+                terrainMap[y][x] = 0.2 + noiseHeight * Math.pow(heightFactor, 2);
+                
             }
         }
 
