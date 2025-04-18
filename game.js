@@ -13,6 +13,8 @@ class Game {
         this.currentFormation = null;
         this.view = new GameView(this);
         this.terrain = new Terrain(this);
+        this.scrollSpeed = 10; // Rychlost scrollování
+        this.scrollMargin = 5; // Vzdálenost od okraje, kdy začne scrollování
         
         // Inicializace v správném pořadí
         this.resizeCanvas();
@@ -95,6 +97,9 @@ class Game {
                     this.currentFormation = new Formation(Array.from(this.selectedUnits));
                 }
             }
+            
+            // Kontrola scrollování
+            this.checkScroll();
         });
 
         window.addEventListener('mouseup', (e) => {
@@ -298,6 +303,41 @@ class Game {
         this.currentFormation = null;
     }
 
+    checkScroll() {
+
+        const margin = this.scrollMargin;
+        const speed = this.scrollSpeed;
+        let targetX = this.terrain.xOffset;
+        let targetY = this.terrain.yOffset;
+        
+        // Kontrola levého okraje
+        if (this.mousePosition.x < margin) {
+            targetX -= speed;
+        }
+        // Kontrola pravého okraje
+        else if (this.mousePosition.x > this.view.canvas.width - margin) {
+            targetX += speed;
+        }
+        
+        // Kontrola horního okraje
+        if (this.mousePosition.y < margin) {
+            targetY -= speed;
+        }
+        // Kontrola dolního okraje
+        else if (this.mousePosition.y > this.view.canvas.height - margin) {
+            targetY += speed;
+        }
+        
+        // Omezení scrollování na hranice mapy
+        this.view.x = Math.max(0, Math.min(targetX, this.terrain.mapWidth * this.terrain.tileSize - this.view.canvas.width));
+        this.view.y = Math.max(0, Math.min(targetY, this.terrain.mapHeight * this.terrain.tileSize - this.view.canvas.height));
+
+        if (this.debugMode) console.log("targetX: " + targetX + " targetY: " + targetY);
+
+        this.terrain.xOffset = this.view.x;
+        this.terrain.yOffset = this.view.y;
+        this.terrain.view.draw();
+    }
 }
 
 // Start the game when the page loads

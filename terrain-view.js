@@ -1,7 +1,8 @@
 class TerrainView {
-    constructor(terrain, viewContext, cfg = {}) {
+    constructor(terrain, cfg = {}) {
         this.terrain = terrain;
-        this.viewContext = viewContext;
+        this.viewContext = terrain.game.view.ctx;
+        this.canvas = terrain.game.view.canvas;
         this.debugMode = terrain.debugMode;
     }
 
@@ -62,33 +63,47 @@ class TerrainView {
     }
 
     draw() {
-
-        for (let y = 0; y < this.terrain.mapHeight; y++) {
-            for (let x = 0; x < this.terrain.mapWidth; x++) {
+        const ctx = this.viewContext;
+        const terrain = this.terrain;
+        const tileSize = terrain.tileSize;
+        
+        // Výpočet viditelné oblasti
+        const startX = Math.floor(terrain.xOffset / tileSize);
+        const startY = Math.floor(terrain.yOffset / tileSize);
+        const endX = Math.min(terrain.mapWidth, startX + Math.ceil(this.canvas.width / tileSize) + 1);
+        const endY = Math.min(terrain.mapHeight, startY + Math.ceil(this.canvas.height / tileSize) + 1);
+        
+        // Výpočet offsetu pro plynulý posun
+        const offsetX = terrain.xOffset % tileSize;
+        const offsetY = terrain.yOffset % tileSize;
+        
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                const height = terrain.terrainMap[y][x];
+                
+                // Výpočet pozice dlaždice s ohledem na offset
+                const screenX = (x - startX) * tileSize - offsetX;
+                const screenY = (y - startY) * tileSize - offsetY;
 
                 if (this.debugMode) {
-                    this.viewContext.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-                    this.viewContext.lineWidth = 0.5;
-                    this.viewContext.strokeRect(
-                        x * this.terrain.tileSize, 
-                        y * this.terrain.tileSize, 
-                        this.terrain.tileSize, 
-                        this.terrain.tileSize
-                    );
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(screenX, screenY, tileSize, tileSize);
                 }
-
-                const terrainHeight = this.terrain.terrainMap[y][x];
-                const color = this.getColor(terrainHeight);
-                this.viewContext.fillStyle = color;
-                this.viewContext.fillRect(
-                    x * this.terrain.tileSize, 
-                    y * this.terrain.tileSize, 
-                    this.terrain.tileSize, 
-                    this.terrain.tileSize
-                );
+                
+                // Barva podle výšky
+                const color = this.getColor(height);
+                ctx.fillStyle = color;
+                ctx.fillRect(screenX, screenY, tileSize, tileSize);
+                
+                // Debug - zobrazení výšky
+                if (terrain.debugMode) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(height.toFixed(2), screenX + 2, screenY + 10);
+                }
             }
         }
-        
     }   
 }
 

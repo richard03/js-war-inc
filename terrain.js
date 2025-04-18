@@ -3,8 +3,8 @@ class Terrain {
         this.game = game;
         this.debugMode = this.game.debugMode;
         this.tileSize = cfg.tileSize || 32;
-        this.mapWidth = Math.ceil(game.view.boundingClientRectangle.width / this.tileSize) * 10;
-        this.mapHeight = Math.ceil(game.view.boundingClientRectangle.height / this.tileSize) * 10;
+        this.mapWidth = Math.ceil(game.view.boundingClientRectangle.width / this.tileSize) * 100;
+        this.mapHeight = Math.ceil(game.view.boundingClientRectangle.height / this.tileSize) * 100;
         this.xOffset = Math.random() * 10000;
         this.yOffset = Math.random() * 10000;
         this.terrainMap = this.generateTerrainMap();
@@ -49,7 +49,7 @@ class Terrain {
                 );
                 
                 // Faktor pro snížení výšky u okrajů
-                // Záměrem je, aby u okrajů byla vždy voda.
+                // Záměrem je, aby u okrajů byla voda.
                 let heightFactor = Math.sqrt(distanceFromEdge) / 5;
                 if (heightFactor > 1) {
                     heightFactor = 1;
@@ -63,6 +63,11 @@ class Terrain {
         }
 
         return terrainMap;
+    }
+
+    moveTerrain(x, y) {
+        this.xOffset += x;
+        this.yOffset += y;
     }
 
 } 
