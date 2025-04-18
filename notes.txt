@@ -1,0 +1,19 @@
+Spuštění testů
+
+npm install --save-dev jest
+
+do package.json je třeba přidat skript
+{
+  "scripts": {
+    "test": "jest"
+  }
+}
+
+Spuštění z bash: npm test
+
+Pro spuštění konkrétního testu nebo sady testů můžete použít:
+    npm test physics.test.js - spustí pouze testy z tohoto souboru
+    npm test -- -t "calculateDistance" - spustí pouze testy obsahující "calculateDistance" v názvu
+    Pro detailnější výstup můžete použít:
+    npm test -- --verbose - zobrazí detailnější informace o průběhu testů
+    npm test -- --coverage - vygeneruje report o pokrytí kódu testy
