@@ -203,12 +203,13 @@ class UnitView {
     }
 
     drawVision(ctx) {
-        // U zničených jednotek nevykreslujeme zrakové pole
-        if (this.unit.isDead) return;
+         // U zničených jednotek nevykreslujeme zrakové pole
+         if (this.unit.isDead) return;
 
-        // Vykreslíme zrakové pole pouze v debug módu
-        if (!this.debugMode) return;
+         // Vykreslíme zrakové pole pouze v debug módu
+         if (!this.debugMode) return;
 
+        // Draw vision cone
         this.viewContext.save();
         this.viewContext.beginPath();
         this.viewContext.moveTo(this.unit.x, this.unit.y);
@@ -216,18 +217,40 @@ class UnitView {
         // Vypočítáme koncové body kužele
         const startAngle = this.unit.vision.currentVisionAngle - this.unit.vision.visionConeAngle / 2;
         const endAngle = this.unit.vision.currentVisionAngle + this.unit.vision.visionConeAngle / 2;
-        
         // Vykreslíme oblouk
         this.viewContext.arc(this.unit.x, this.unit.y, this.unit.vision.visionRange, startAngle, endAngle);
-        
+
         // Vrátíme se zpět do středu
         this.viewContext.lineTo(this.unit.x, this.unit.y);
-        
         // Nastavíme barvu a průhlednost
         this.viewContext.fillStyle = this.visionColor;
         this.viewContext.fill();
-        
         this.viewContext.restore();
+
+        // Draw vision direction arrow
+        const arrowLength = this.unit.vision.visionRange;
+        const angle = this.unit.vision.currentVisionAngle;
+        const endX = this.unit.x + Math.cos(angle) * arrowLength;
+        const endY = this.unit.y + Math.sin(angle) * arrowLength;
+
+        ctx.strokeStyle = 'rgba(0, 0, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.unit.x, this.unit.y);
+        ctx.lineTo(endX, endY);
+        
+        // Draw arrow head
+        const arrowSize = 10;
+        ctx.lineTo(
+            endX - arrowSize * Math.cos(angle - Math.PI / 6),
+            endY - arrowSize * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+            endX - arrowSize * Math.cos(angle + Math.PI / 6),
+            endY - arrowSize * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.stroke();
     }
 
     drawFire(ctx) {

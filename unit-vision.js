@@ -1,3 +1,10 @@
+if (typeof require == 'function') {
+    Vector2 = require('./vector2.js');
+}
+
+/**
+ * Manages unit vision and targeting.
+ */
 class UnitVision {
     constructor(unit, cfg = {}) {
         this.unit = unit;
@@ -7,17 +14,24 @@ class UnitVision {
         this.targetVisionAngle = this.visionConeAngle;
         this.visionRotationSpeed = cfg.visionRotationSpeed || 0.1; // Rychlost rotace zrakového pole
         this.seesObstacle = false;
+        
+        // Vektor směru pohledu
+        this.visionDirection = new Vector2(1, 0);
     }
 
     update() {
-        
         if (this.unit.targetX !== this.unit.x || this.unit.targetY !== this.unit.y) {
-            
             this.updateVisionAngle(
                 this.unit.x,
                 this.unit.y, 
                 this.unit.targetX, 
                 this.unit.targetY
+            );
+            
+            // Aktualizace vektoru směru pohledu
+            this.visionDirection = new Vector2(
+                Math.cos(this.currentVisionAngle),
+                Math.sin(this.currentVisionAngle)
             );
         }
     }
@@ -86,4 +100,18 @@ class UnitVision {
             }
         }
     }
+    
+    /**
+     * Vrátí body pro vykreslení debug šipky směru pohledu
+     * @returns {Object} Objekt s vlastnostmi start a end pro vykreslení šipky
+     */
+    getDebugVisionArrow() {
+        const start = new Vector2(this.unit.x, this.unit.y);
+        const end = start.add(this.visionDirection.multiplyScalar(this.visionRange));
+        return { start, end };
+    }
+}
+
+if (typeof module !== 'undefined') {
+    module.exports = UnitVision; 
 } 
