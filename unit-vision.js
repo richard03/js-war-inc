@@ -13,7 +13,7 @@ class UnitVision {
         this.currentVisionAngle = this.visionConeAngle;
         this.targetVisionAngle = this.visionConeAngle;
         this.visionRotationSpeed = cfg.visionRotationSpeed || 0.1; // Rychlost rotace zrakového pole
-        this.seesObstacle = false;
+        
         
         // Vektor směru pohledu
         this.visionDirection = new Vector2(1, 0);
@@ -43,10 +43,13 @@ class UnitVision {
     }
 
     // Aktualizuje směr pohledu
-    updateVisionAngle(startX, startY, targetX, targetY) {
+    updateVisionAngle(targetX, targetY) {
         // Vypočítáme směr pohledu z počáteční pozice k cíli
-        const dx = targetX - startX;
-        const dy = targetY - startY;
+        const dx = targetX - this.unit.x;
+        const dy = targetY - this.unit.y;
+        if (FuzzyMath.isClose(dx, 0) && FuzzyMath.isClose(dy, 0)) {
+            return;
+        }
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
@@ -92,24 +95,15 @@ class UnitVision {
 
     // Kontroluje, zda je v zorném poli nějaká jednotka
     checkUnitsInVisionCone() {
-        this.seesObstacle = false;
+        this.unit.seesObstacle = false;
         for (const unit of this.unit.game.units) {
             if (this.isInVisionCone(unit.x, unit.y)) {
-                this.seesObstacle = true;
+                this.unit.seesObstacle = true;
                 break;
             }
         }
     }
     
-    /**
-     * Vrátí body pro vykreslení debug šipky směru pohledu
-     * @returns {Object} Objekt s vlastnostmi start a end pro vykreslení šipky
-     */
-    getDebugVisionArrow() {
-        const start = new Vector2(this.unit.x, this.unit.y);
-        const end = start.add(this.visionDirection.multiplyScalar(this.visionRange));
-        return { start, end };
-    }
 }
 
 if (typeof module !== 'undefined') {

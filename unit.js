@@ -21,6 +21,7 @@ class Unit {
         this.health = cfg.health || 100;
         this.hasVisibleEnemies = cfg.hasVisibleEnemies || false;
         this.lastAttacker = null;
+        this.seesObstacle = false;
         
         
         // Fyzikální vlastnosti
@@ -111,7 +112,7 @@ class Unit {
         this.y += this.velocity.y;
         
         // Aktualizujeme směr pohledu
-        this.vision.updateVisionAngle(this.startX, this.startY, this.targetX, this.targetY);
+        this.vision.updateVisionAngle(this.targetX, this.targetY);
         
         // Resetujeme sílu
         this.currentForce = { x: 0, y: 0, magnitude: 0 };
