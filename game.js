@@ -313,9 +313,11 @@ class Game {
 
     createSelectionBox() {
         this.view.drawSelectBox(
-            this.dragStart.x, 
-            this.dragStart.y, 
-            this.mousePosition.x, this.mousePosition.y);
+            this.dragStart.x - this.terrain.xOffset, 
+            this.dragStart.y - this.terrain.yOffset, 
+            this.mousePosition.x, 
+            this.mousePosition.y
+        );
     }
     
     clearSelection() {
