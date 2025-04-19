@@ -351,14 +351,17 @@ class Game {
             
         // Draw selection box if dragging
         if (this.isDragging) {
-            this.view.drawSelectBox(
-                this.dragStart.x, 
-                this.dragStart.y, 
-                this.mousePosition.x, 
-                this.mousePosition.y);
+            this.createSelectionBox();
         }
 
         requestAnimationFrame(() => this.gameLoop());
+    }
+
+    createSelectionBox() {
+        this.view.drawSelectBox(
+            this.dragStart.x, 
+            this.dragStart.y, 
+            this.mousePosition.x, this.mousePosition.y);
     }
     
     clearSelection() {
