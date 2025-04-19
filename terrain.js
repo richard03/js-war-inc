@@ -17,6 +17,12 @@ class Terrain {
         this.terrainMap = this.generateTerrainMap();
     }
 
+    isTileWalkable(x, y) {
+        const tileX = Math.floor(x / this.tileSize);
+        const tileY = Math.floor(y / this.tileSize);
+        return this.terrainMap[tileY][tileX] > this.waterLevel;
+    }
+
     // Generování výškové mapy pomocí Perlinova šumu
     generateTerrainMap() {
         const terrainMap = new Array(this.mapHeight);

@@ -11,9 +11,15 @@ class UnitMovement {
 
     update() {
         
-        // Aktualizujeme pozici
-        this.unit.x += this.currentVelocity.x;
-        this.unit.y += this.currentVelocity.y;
+        const newX = this.unit.x + this.currentVelocity.x;
+        const newY = this.unit.y + this.currentVelocity.y;
+        
+        if (this.unit.game.terrain.isTileWalkable(newX, newY)) {
+            this.unit.x = newX;
+            this.unit.y = newY;
+        } else {
+            this.stop();
+        }
 
         if (this.isNearTarget()) {
             this.stop();
