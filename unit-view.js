@@ -377,6 +377,12 @@ class UnitView {
             endX - size * Math.cos(angle - Math.PI / 6), 
             endY - size * Math.sin(angle - Math.PI / 6)
         );
+        
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+            endX - size * Math.cos(angle + Math.PI / 6), 
+            endY - size * Math.sin(angle + Math.PI / 6)
+        );
         ctx.stroke();
         ctx.restore();
     }
