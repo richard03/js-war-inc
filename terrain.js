@@ -8,6 +8,7 @@ class Terrain {
         this.xOffset = 0
         this.yOffset = 0
         this.terrainMap = this.generateTerrainMap();
+        this.waterLevel = 0.3;
         this.view = new TerrainView(this, game.view.ctx);
         
     }

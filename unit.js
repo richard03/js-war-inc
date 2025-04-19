@@ -8,6 +8,7 @@ class Unit {
         this.x = cfg.x;
         this.y = cfg.y;
         this.size = cfg.size || 20;
+        this.personalSpace = cfg.personalSpace || 40;
         this.isSelected = cfg.isSelected || false;
         this.targetX = this.x;
         this.targetY = this.y;

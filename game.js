@@ -197,14 +197,61 @@ class Game {
         const enemyStartX = this.view.canvas.width - enemyAreaWidth;
         const enemyStartY = 0;
 
+        // Helper function to check if position is valid
+        const isValidPosition = (x, y, existingUnits) => {
+            // Check if position is in water
+            const tileX = Math.floor(x / this.terrain.tileSize);
+            const tileY = Math.floor(y / this.terrain.tileSize);
+            if (tileX < 0 || tileX >= this.terrain.mapWidth ||
+                tileY < 0 || tileY >= this.terrain.mapHeight) {
+                return false;
+            }
+            if (this.terrain.terrainMap[tileY][tileX] <= this.terrain.waterLevel) {
+                return false;
+            }
+            
+            // Check distance to other units
+            for (const unit of existingUnits) {
+                const distance = GamePosition.getDistance(x, y, unit.x, unit.y);
+                if (distance < unit.personalSpace) {
+                    return false;
+                }
+            }
+            
+            return true;
+        };
+
+        // Helper function to find valid position
+        const findValidPosition = (startX, startY, areaWidth, areaHeight, existingUnits, maxAttempts = 100) => {
+            for (let i = 0; i < maxAttempts; i++) {
+                const x = startX + Math.random() * areaWidth;
+                const y = startY + Math.random() * areaHeight;
+                if (isValidPosition(x, y, existingUnits)) {
+                    return { x, y };
+                }
+            }
+            return null; // No valid position found
+        };
+
+        // Create enemy units
         const enemyUnits = [];
         for (let i = 0; i < enemyUnitCount; i++) {
-            // Random position within the top right area
-            const x = enemyStartX + Math.random() * enemyAreaWidth;
-            const y = enemyStartY + Math.random() * enemyAreaHeight;
+            const position = findValidPosition(
+                enemyStartX,
+                enemyStartY,
+                enemyAreaWidth,
+                enemyAreaHeight,
+                enemyUnits
+            );
+            
+            if (!position) {
+                console.warn(`Could not find valid position for enemy unit ${i}`);
+                continue;
+            }
+            
             const unit = new Unit(this, {
-                x: x,
-                y: y,
+                x: position.x,
+                y: position.y,
                 isEnemy: true,
                 debugMode: this.debugMode
             });
@@ -215,21 +262,31 @@ class Game {
         const avgEnemyX = enemyUnits.reduce((sum, unit) => sum + unit.x, 0) / enemyUnitCount;
         const avgEnemyY = enemyUnits.reduce((sum, unit) => sum + unit.y, 0) / enemyUnitCount;
 
-        // Create friendly units looking towards enemies
+        // Create friendly units
         for (let i = 0; i < friendlyUnitCount; i++) {
-            // Random position within the bottom left area
-            const x = friendlyStartX + Math.random() * friendlyAreaWidth;
-            const y = friendlyStartY + Math.random() * friendlyAreaHeight;
+            const position = findValidPosition(
+                friendlyStartX,
+                friendlyStartY,
+                friendlyAreaWidth,
+                friendlyAreaHeight,
+                [...enemyUnits, ...this.units]
+            );
+            
+            if (!position) {
+                console.warn(`Could not find valid position for friendly unit ${i}`);
+                continue;
+            }
+            
             const unit = new Unit(this, {
-                x: x,
-                y: y,
+                x: position.x,
+                y: position.y,
                 isEnemy: false,
                 debugMode: this.debugMode
             });
             
             // Calculate angle towards average enemy position with some variation
-            const dx = avgEnemyX - x;
-            const dy = avgEnemyY - y;
+            const dx = avgEnemyX - position.x;
+            const dy = avgEnemyY - position.y;
             const baseAngle = Math.atan2(dy, dx);
             const angleVariation = (Math.random() - 0.5) * Math.PI / 6; // ±15 degrees variation
             const friendlyAngle = baseAngle + angleVariation;
