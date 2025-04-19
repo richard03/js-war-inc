@@ -3,10 +3,10 @@ class Terrain {
         this.game = game;
         this.debugMode = this.game.debugMode;
         this.tileSize = cfg.tileSize || 32;
-        this.mapWidth = Math.ceil(game.view.boundingClientRectangle.width / this.tileSize) * 100;
-        this.mapHeight = Math.ceil(game.view.boundingClientRectangle.height / this.tileSize) * 100;
-        this.xOffset = Math.random() * 10000;
-        this.yOffset = Math.random() * 10000;
+        this.mapWidth = Math.ceil(game.view.boundingClientRectangle.width / this.tileSize) * 10;
+        this.mapHeight = Math.ceil(game.view.boundingClientRectangle.height / this.tileSize) * 10;
+        this.xOffset = 0
+        this.yOffset = 0
         this.terrainMap = this.generateTerrainMap();
         this.view = new TerrainView(this, game.view.ctx);
         
