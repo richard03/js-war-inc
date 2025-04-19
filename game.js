@@ -14,7 +14,7 @@ class Game {
         this.view = new GameView(this);
         this.terrain = new Terrain(this);
         this.scrollSpeed = 10; // Rychlost scrollování
-        this.scrollMargin = 10; // Vzdálenost od okraje, kdy začne scrollování
+        this.scrollMargin = 50; // Vzdálenost od okraje, kdy začne scrollování
         
         // Inicializace v správném pořadí
         this.resizeCanvas();
@@ -99,9 +99,6 @@ class Game {
                     this.currentFormation = new Formation(Array.from(this.selectedUnits));
                 }
             }
-            
-            // Kontrola scrollování
-            this.checkScroll();
         });
 
         window.addEventListener('mouseup', (e) => {
@@ -334,6 +331,9 @@ class Game {
     }
     
     gameLoop() {
+
+        // Kontrola scrollování
+        this.checkScroll();
     
         // Update units
         for (const unit of this.units) {
