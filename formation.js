@@ -64,10 +64,12 @@ class Formation {
             if (unitDistance > 2) { // Smaller threshold for formation maintenance
                 // Use a gentler force for formation maintenance
                 const moveForce = Math.min(unitDistance * 0.1, 1.0);
-                unit.moveTo(
-                    unit.x + unitDx * moveForce,
-                    unit.y + unitDy * moveForce
-                );
+                const newX = unit.x + unitDx * moveForce;
+                const newY = unit.y + unitDy * moveForce;
+                
+                // Otočíme jednotku směrem k cíli
+                unit.vision.startTurningTo(newX, newY);
+                unit.moveTo(newX, newY);
             }
         }
 

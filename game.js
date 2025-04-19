@@ -19,10 +19,28 @@ class Game {
         // Inicializace v správném pořadí
         this.resizeCanvas();
         this.setupEventListeners();
-        this.createInitialUnits();
+        this.initMap();
+        this.initUnits();
         
         // Spuštění herní smyčky až po inicializaci
         requestAnimationFrame(() => this.gameLoop());
+    }
+
+    setupEventListeners() {
+        window.addEventListener('resize', () => this.resizeCanvas());
+
+        window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+        window.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+
+        window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+
+        window.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+
+        // Prevent context menu on right click
+        this.view.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
     }
     
     resizeCanvas() {
@@ -36,39 +54,34 @@ class Game {
         }
     }
     
-    setupEventListeners() {
-        
-        window.addEventListener('resize', () => this.resizeCanvas());
-        
-        // Add Escape key listener
-        window.addEventListener('keydown', (e) => {
-            // Zrušení výběru
-            if (e.key === 'Escape') {
-                this.clearSelection();
+    handleKeyDown(e) {
+        // Zrušení výběru
+        if (e.key === 'Escape') {
+            this.clearSelection();
+        }
+        // Přepnutí debug módu
+        if (event.key === 'd' || event.key === 'D') {
+            this.debugMode = !this.debugMode;
+            // Aktualizujeme debug mód u všech jednotek
+            for (const unit of this.units) {
+                unit.view.debugMode = this.debugMode;
             }
-            // Přepnutí debug módu
-            if (event.key === 'd' || event.key === 'D') {
-                this.debugMode = !this.debugMode;
-                // Aktualizujeme debug mód u všech jednotek
-                for (const unit of this.units) {
-                    unit.view.debugMode = this.debugMode;
-                }
-                // Přepnutí debug módu u terénu
-                this.terrain.debugMode = this.debugMode;
-            }
-        });
+            // Přepnutí debug módu u terénu
+            this.terrain.debugMode = this.debugMode;
+        }
+    }
         
-        window.addEventListener('mousedown', (e) => {
-            this.dragStart = { 
-                x: e.clientX + this.terrain.xOffset, 
-                y: e.clientY + this.terrain.yOffset
-            };
-        });
+    handleMouseDown(e) {
+        this.dragStart = { 
+            x: e.clientX + this.terrain.xOffset, 
+            y: e.clientY + this.terrain.yOffset
+        };
+    }
 
-        window.addEventListener('mousemove', (e) => {
+    handleMouseMove(e) {
             
-            if (this.dragStart) {
-                // Mark that the mouse has moved during drag
+        if (this.dragStart) {
+            // Mark that the mouse has moved during drag
                 const dx = e.clientX + this.terrain.xOffset - this.dragStart.x;
                 const dy = e.clientY + this.terrain.yOffset - this.dragStart.y;
                 if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
@@ -99,235 +112,176 @@ class Game {
                     this.currentFormation = new Formation(Array.from(this.selectedUnits));
                 }
             }
-        });
+    }
 
-        window.addEventListener('mouseup', (e) => {
-            if (this.debugMode) console.log("Mouse up");
-            // const x = e.clientX - this.view.boundingClientRectangle.left;
-            // const y = e.clientY - this.view.boundingClientRectangle.top;
-            const x = e.clientX + this.terrain.xOffset - this.view.boundingClientRectangle.left;
-            const y = e.clientY + this.terrain.yOffset - this.view.boundingClientRectangle.top;
-            
-            
-            // Handle right click to clear selection
-            if (e.button === 2) { // Right mouse button
-                this.clearSelection();
-                this.dragStart = null;
-                this.isDragging = false;
-                return;
-            }
-
-            // Left mouse button
-            if (this.debugMode) console.log("Left mouse button");
-
-            // Výběr oblasti myší
-            if (this.isDragging) {
-                // Select friendly units within the selection box
-                for (const unit of this.units) {
-                    if (!unit.isEnemy && unit.isInSelectionBox(this.dragStart.x, this.dragStart.y, x, y)) {
-                        unit.select();
-                        this.selectedUnits.add(unit);
-                    }
-                }
-                if (this.selectedUnits.size > 1) {
-                    this.currentFormation = new Formation(Array.from(this.selectedUnits));
-                }
-                if (this.debugMode) console.log("Drag end");
-                this.dragStart = null;
-                this.isDragging = false;
-                return;
-            }
-
-            this.dragStart = null;
-
-            // Kliknutí na jednotku
-            for (const unit of this.units) {
-                if (unit.isPointInside(x, y) && !unit.isEnemy) {
-                    
-                    if (!e.shiftKey) { // standardní výběr jednotky
-                        this.clearSelection();
-                        unit.select();
-                        this.selectedUnits.add(unit);
-                    } else { // shift key is pressed
-                        this.selectedUnits.add(unit);
-                        unit.select();
-                        if (this.selectedUnits.size > 1) {
-                            this.currentFormation = new Formation(Array.from(this.selectedUnits));
-                        }
-                    }
-                    if (this.debugMode) console.log("Selected a friendly unit");
-                    return;
-                }
-            }
-
-            // Kliknutí na mapu
-            if (this.debugMode) console.log("Clicked on map");
-            if (this.currentFormation) {
-                this.currentFormation.moveTo(x, y);
-            } else {
-                // TODO: Nebylo by výhodné chovat se k jedné jednotce jako k formaci?
-                this.selectedUnits.forEach((unit) => {
-                    if (this.debugMode) console.log("Moving unit to [" + x + " : " + y + "]");
-                    unit.moveTo(x, y);
-                });
-            }
-        });
+    handleMouseUp(e) {
         
-        // Prevent context menu on right click
-        this.view.canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-        });
+        const x = e.clientX + this.terrain.xOffset - this.view.boundingClientRectangle.left;
+        const y = e.clientY + this.terrain.yOffset - this.view.boundingClientRectangle.top;
+        
+        
+        // Handle right click to clear selection
+        if (e.button === 2) { // Right mouse button
+            this.clearSelection();
+            this.dragStart = null;
+            this.isDragging = false;
+            return;
+        }
+
+        // Left mouse button
+        if (this.debugMode) console.log("Left mouse button");
+
+        // Výběr oblasti myší
+        if (this.isDragging) {
+            // Select friendly units within the selection box
+            for (const unit of this.units) {
+                if (!unit.isEnemy && unit.isInSelectionBox(this.dragStart.x, this.dragStart.y, x, y)) {
+                    unit.select();
+                    this.selectedUnits.add(unit);
+                }
+            }
+            if (this.selectedUnits.size > 1) {
+                this.currentFormation = new Formation(Array.from(this.selectedUnits));
+            }
+            if (this.debugMode) console.log("Drag end");
+            this.dragStart = null;
+            this.isDragging = false;
+            return;
+        }
+
+        this.dragStart = null;
+
+        // Kliknutí na jednotku
+        for (const unit of this.units) {
+            if (unit.isPointInside(x, y) && !unit.isEnemy) {
+                
+                if (!e.shiftKey) { // standardní výběr jednotky
+                    this.clearSelection();
+                    unit.select();
+                    this.selectedUnits.add(unit);
+                } else { // shift key is pressed
+                    this.selectedUnits.add(unit);
+                    unit.select();
+                    if (this.selectedUnits.size > 1) {
+                        this.currentFormation = new Formation(Array.from(this.selectedUnits));
+                    }
+                }
+                if (this.debugMode) console.log("Selected a friendly unit");
+                return;
+            }
+        }
+
+        // Kliknutí na mapu
+        if (this.debugMode) console.log("Clicked on map");
+        if (this.currentFormation) {
+            this.currentFormation.moveTo(x, y);
+        } else {
+            // TODO: Nebylo by výhodné chovat se k jedné jednotce jako k formaci?
+            this.selectedUnits.forEach((unit) => {
+                if (this.debugMode) console.log("Moving unit to [" + x + " : " + y + "]");
+                
+                unit.vision.startTurningTo(x, y);
+                unit.moveTo(x, y);
+            });
+        }
+    }
+
+    initMap() {
+        this.terrain.init();
     }
     
-    createInitialUnits() {
-        // Create friendly units in bottom left
-        const friendlyUnitCount = 5;
-        const friendlyAreaWidth = this.view.canvas.width * 0.3; // 30% of screen width
-        const friendlyAreaHeight = this.view.canvas.height * 0.3; // 30% of screen height
-        const friendlyStartX = 0;
-        const friendlyStartY = this.view.canvas.height - friendlyAreaHeight;
+    initUnits() {
+        this.createUnits({
+            isEnemy: false,
+            unitCount: 5,
+            startX: this.terrain.mapWidth * 0.1 * this.terrain.tileSize,
+            startY: this.terrain.mapHeight * 0.1 * this.terrain.tileSize,
+            startAreaRadius: this.terrain.mapHeight * 0.4 * this.terrain.tileSize,
+            visionDirection: { x: 1, y: 1 }
+        });  
 
-        // Create enemy units in top right first
-        const enemyUnitCount = 3;
-        const enemyAreaWidth = this.view.canvas.width * 0.3; // 30% of screen width
-        const enemyAreaHeight = this.view.canvas.height * 0.3; // 30% of screen height
-        const enemyStartX = this.view.canvas.width - enemyAreaWidth;
-        const enemyStartY = 0;
+        this.createUnits({
+            isEnemy: true,
+            unitCount: 3,
+            startX: (this.terrain.mapWidth - this.terrain.mapWidth * 0.1) * this.terrain.tileSize ,
+            startY:  (this.terrain.mapHeight - this.terrain.mapHeight * 0.1) * this.terrain.tileSize,
+            startAreaRadius: this.terrain.mapHeight * 0.4 * this.terrain.tileSize,
+            visionDirection: { x: -1, y: -1 }
+        });
+    }
 
-        // Helper function to check if position is valid
-        const isValidPosition = (x, y, existingUnits) => {
-            // Check if position is in water
-            const tileX = Math.floor(x / this.terrain.tileSize);
-            const tileY = Math.floor(y / this.terrain.tileSize);
-            if (tileX < 0 || tileX >= this.terrain.mapWidth ||
-                tileY < 0 || tileY >= this.terrain.mapHeight) {
-                return false;
-            }
-            if (this.terrain.terrainMap[tileY][tileX] <= this.terrain.waterLevel) {
-                return false;
-            }
-            
-            // Check distance to other units
-            for (const unit of existingUnits) {
-                const distance = GamePosition.getDistance(x, y, unit.x, unit.y);
-                if (distance < unit.personalSpace) {
-                    return false;
-                }
-            }
-            
-            return true;
-        };
+    createUnits(cfg) {
+        const { 
+            isEnemy = true, 
+            unitCount = 0, 
+            startX = 0, 
+            startY = 0, 
+            startAreaRadius = 0, 
+            visionDirection = { x: 1, y: 1 } 
+        } = cfg;
 
-        // Helper function to find valid position
-        const findValidPosition = (startX, startY, areaWidth, areaHeight, existingUnits, maxAttempts = 100) => {
-            for (let i = 0; i < maxAttempts; i++) {
-                const x = startX + Math.random() * areaWidth;
-                const y = startY + Math.random() * areaHeight;
-                if (isValidPosition(x, y, existingUnits)) {
-                    return { x, y };
-                }
-            }
-            return null; // No valid position found
-        };
-
-        // Create enemy units
-        const enemyUnits = [];
-        for (let i = 0; i < enemyUnitCount; i++) {
-            const position = findValidPosition(
-                enemyStartX,
-                enemyStartY,
-                enemyAreaWidth,
-                enemyAreaHeight,
-                enemyUnits
-            );
-            
+        for (let i = 0; i < unitCount; i++) {
+            const position = this.findValidPosition(startX, startY, startAreaRadius);
             if (!position) {
-                console.warn(`Could not find valid position for enemy unit ${i}`);
+                console.warn(`Could not find valid position for unit ${i}`);
                 continue;
             }
             
             const unit = new Unit(this, {
                 x: position.x,
                 y: position.y,
-                isEnemy: true,
+                isEnemy: isEnemy,
                 debugMode: this.debugMode
             });
-            enemyUnits.push(unit);
-        }
-
-        // Calculate average enemy position
-        const avgEnemyX = enemyUnits.reduce((sum, unit) => sum + unit.x, 0) / enemyUnitCount;
-        const avgEnemyY = enemyUnits.reduce((sum, unit) => sum + unit.y, 0) / enemyUnitCount;
-
-        // Create friendly units
-        for (let i = 0; i < friendlyUnitCount; i++) {
-            const position = findValidPosition(
-                friendlyStartX,
-                friendlyStartY,
-                friendlyAreaWidth,
-                friendlyAreaHeight,
-                [...enemyUnits, ...this.units]
+            
+            // unit.vision.turnTo(visionDirection.x, visionDirection.y);
+            const visionTargetVector = new Vector2(
+                unit.x + visionDirection.x, 
+                unit.y + visionDirection.y
             );
+            unit.vision.turnTo(visionTargetVector.x, visionTargetVector.y);
             
-            if (!position) {
-                console.warn(`Could not find valid position for friendly unit ${i}`);
-                continue;
+            this.units.add(unit);
+        }
+    }
+
+    // Helper function to check if position is valid
+    isValidPosition(x, y) {
+        // Check if position is in water
+        const tileX = Math.floor(x / this.terrain.tileSize);
+        const tileY = Math.floor(y / this.terrain.tileSize);
+        if (tileX < 0 || tileX >= this.terrain.mapWidth ||
+            tileY < 0 || tileY >= this.terrain.mapHeight) {
+            return false;
+        }
+        if (this.terrain.terrainMap[tileY][tileX] <= this.terrain.waterLevel) {
+            return false;
+        }
+        
+        // Check distance to other units
+        for (const unit of this.units) {
+            const distance = GamePosition.getDistance(x, y, unit.x, unit.y);
+            if (distance < unit.personalSpace) {
+                return false;
             }
-            
-            const unit = new Unit(this, {
-                x: position.x,
-                y: position.y,
-                isEnemy: false,
-                debugMode: this.debugMode
-            });
-            
-            // Calculate angle towards average enemy position with some variation
-            const dx = avgEnemyX - position.x;
-            const dy = avgEnemyY - position.y;
-            const baseAngle = Math.atan2(dy, dx);
-            const angleVariation = (Math.random() - 0.5) * Math.PI / 6; // ±15 degrees variation
-            const friendlyAngle = baseAngle + angleVariation;
-            
-            unit.vision.currentVisionAngle = friendlyAngle;
-            unit.vision.targetVisionAngle = friendlyAngle;
-            
-            // Reset all physical properties to ensure units start at rest
-            unit.velocity = { x: 0, y: 0 };
-            unit.currentForce = { x: 0, y: 0, magnitude: 0 };
-            unit.lastForceMagnitude = 0;
-            unit.targetVisionAngle = friendlyAngle;
-            unit.currentVisionAngle = friendlyAngle;
-            unit.lastVisionAngle = friendlyAngle;
-            
-            this.units.add(unit);
         }
+        
+        return true;
+    }
 
-        // Calculate average friendly position
-        const avgFriendlyX = Array.from(this.units).reduce((sum, unit) => sum + unit.x, 0) / friendlyUnitCount;
-        const avgFriendlyY = Array.from(this.units).reduce((sum, unit) => sum + unit.y, 0) / friendlyUnitCount;
-
-        // Set enemy units to look towards friendly units
-        for (const unit of enemyUnits) {
-            // Calculate angle towards average friendly position with some variation
-            const dx = avgFriendlyX - unit.x;
-            const dy = avgFriendlyY - unit.y;
-            const baseAngle = Math.atan2(dy, dx);
-            const angleVariation = (Math.random() - 0.5) * Math.PI / 6; // ±15 degrees variation
-            const enemyAngle = baseAngle + angleVariation;
-            
-            unit.vision.currentVisionAngle = enemyAngle;
-            unit.vision.targetVisionAngle = enemyAngle;
-            
-            // Reset all physical properties to ensure units start at rest
-            unit.velocity = { x: 0, y: 0 };
-            unit.currentForce = { x: 0, y: 0, magnitude: 0 };
-            unit.lastForceMagnitude = 0;
-            unit.targetVisionAngle = enemyAngle;
-            unit.currentVisionAngle = enemyAngle;
-            unit.lastVisionAngle = enemyAngle;
-            
-            this.units.add(unit);
+    // Helper function to find valid position
+    findValidPosition(startX, startY, startAreaRadius, maxAttempts = 100) {
+        for (let i = 0; i < maxAttempts; i++) {
+            // Generate random coordinates within the circle
+            const angle = Math.random() * 2 * Math.PI;
+            const radius = Math.random() * startAreaRadius;
+            const x = startX + Math.cos(angle) * radius;
+            const y = startY + Math.sin(angle) * radius;
+            if (this.isValidPosition(x, y)) {
+                return { x, y };
+            }
         }
+        return null; // No valid position found
     }
     
     gameLoop() {

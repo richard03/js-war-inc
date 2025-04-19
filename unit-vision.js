@@ -8,82 +8,72 @@ if (typeof require == 'function') {
 class UnitVision {
     constructor(unit, cfg = {}) {
         this.unit = unit;
-        this.visionRange = cfg.visionRange || 400;
+        this.visionRange = cfg.visionRange || 200;
+
         this.visionConeAngle = cfg.visionConeAngle || Math.PI * 2/3;
-        this.currentVisionAngle = this.visionConeAngle;
-        this.targetVisionAngle = this.visionConeAngle;
+
+        this.currentVisionVector = new Vector2(this.visionRange, 0);
+        this.targetVisionVector = new Vector2(this.visionRange, 0);
         this.visionRotationSpeed = cfg.visionRotationSpeed || 0.1; // Rychlost rotace zrakového pole
-        
-        
-        // Vektor směru pohledu
-        this.visionDirection = new Vector2(1, 0);
+    
     }
 
     update() {
-        if (this.unit.targetX !== this.unit.x || this.unit.targetY !== this.unit.y) {
-            this.updateVisionAngle(
-                this.unit.x,
-                this.unit.y, 
-                this.unit.targetX, 
-                this.unit.targetY
-            );
-            
-            // Aktualizace vektoru směru pohledu
-            this.visionDirection = new Vector2(
-                Math.cos(this.currentVisionAngle),
-                Math.sin(this.currentVisionAngle)
-            );
+        const targetAngle = this.targetVisionVector.getAngle();
+        const currentAngle = this.currentVisionVector.getAngle();
+
+        if (FuzzyMath.isClose(currentAngle, targetAngle, this.visionRotationSpeed)) {
+            this.currentVisionVector = this.targetVisionVector.clone();
+            return;
+        }
+
+        // Normalizujeme úhly do rozsahu -PI až PI
+        let angleDiff = targetAngle - currentAngle;
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+        // Otáčíme vždy nejkratší cestou
+        if (angleDiff > 0) {
+            this.currentVisionVector = this.currentVisionVector.rotate(this.visionRotationSpeed);
+        } else {
+            this.currentVisionVector = this.currentVisionVector.rotate(-this.visionRotationSpeed);
         }
     }
     
-    faceTarget(targetX, targetY) {
-        const dx = targetX - this.unit.x;
-        const dy = targetY - this.unit.y;
-        this.targetVisionAngle = Math.atan2(dy, dx);
+    /**
+     * Začne otáčet pohled směrem k cíli
+     * @param {number} targetX - X souřadnice cíle
+     * @param {number} targetY - Y souřadnice cíle
+     */
+    startTurningTo(targetX, targetY) {
+        const targetVector = new Vector2(targetX - this.unit.x, targetY - this.unit.y);
+        const targetAngle = targetVector.getAngle();
+        this.targetVisionVector = new Vector2(this.visionRange, 0).rotate(targetAngle);
     }
 
-    // Aktualizuje směr pohledu
-    updateVisionAngle(targetX, targetY) {
-        // Vypočítáme směr pohledu z počáteční pozice k cíli
-        const dx = targetX - this.unit.x;
-        const dy = targetY - this.unit.y;
-        if (FuzzyMath.isClose(dx, 0) && FuzzyMath.isClose(dy, 0)) {
-            return;
-        }
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-            // Nastavíme cílový úhel pohledu
-            this.targetVisionAngle = Math.atan2(dy, dx);
-            
-            // Plynulá interpolace mezi aktuálním a cílovým úhlem
-            let angleDiff = this.targetVisionAngle - this.currentVisionAngle;
-            
-            // Normalizujeme rozdíl úhlů do rozsahu -PI až PI
-            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-            
-            // Interpolujeme úhel
-            this.currentVisionAngle += angleDiff * this.visionRotationSpeed;
-        }
+    /**
+     * Okamžitě točí pohled směrem k cíli
+     * @param {number} targetX - X souřadnice cíle
+     * @param {number} targetY - Y souřadnice cíle
+     */
+    turnTo(targetX, targetY) {
+        const targetVector = new Vector2(targetX - this.unit.x, targetY - this.unit.y);
+        const targetAngle = targetVector.getAngle();
+        this.targetVisionVector = new Vector2(this.visionRange, 0).rotate(targetAngle);
+        this.currentVisionVector = this.targetVisionVector.clone();
     }
 
     isInVisionCone(x, y) {
         // Vypočítáme směr k bodu
-        const dx = x - this.unit.x;
-        const dy = y - this.unit.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const targetVector = new Vector2(x - this.unit.x, y - this.unit.y);
         
         // Pokud je bod příliš daleko, není v zorném poli
-        if (distance > this.visionRange) {
+        if (targetVector.length > this.visionRange) {
             return false;
         }
         
-        // Vypočítáme úhel k bodu
-        const angle = Math.atan2(dy, dx);
-        
         // Vypočítáme rozdíl úhlů
-        let angleDiff = angle - this.currentVisionAngle;
+        let angleDiff = targetVector.getAngle() - this.currentVisionVector.getAngle();
         
         // Normalizujeme úhel do rozsahu -PI až PI
         while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;

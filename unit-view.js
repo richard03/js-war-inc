@@ -11,8 +11,6 @@ class UnitView {
         this.currentColor = this.originalColor;
         this.selectedColor = cfg.selectedColor || '#00ff00';
         this.selectedLineWidth = cfg.selectedLineWidth || 3;
-        this.visionColor = cfg.visionColor || 'rgba(255, 255, 0, 0.01)';
-        this.visionBorderColor = cfg.visionBorderColor || 'rgba(255, 255, 0, 0.03)';
         this.healthColors = cfg.healthColors || {
             high: '#00ff00',
             medium: '#ffff00',
@@ -171,7 +169,7 @@ class UnitView {
         ctx.translate(screenX, screenY);
 
         // Rotate based on vision angle + 90 degrees
-        ctx.rotate(this.unit.vision.currentVisionAngle + Math.PI/2);
+        ctx.rotate(this.unit.vision.currentVisionVector.getAngle() + Math.PI/2);
         
         // Calculate dimensions while maintaining aspect ratio
         const spriteWidth = this.vehicleSprite.naturalWidth;
@@ -212,7 +210,7 @@ class UnitView {
         const healthBarX = screenX - healthBarWidth/2;
         const healthBarY = screenY - this.unit.size - 8;
 
-    
+        
         // Draw health bar background
         ctx.fillStyle = this.healthBarBackground;
         ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
@@ -359,67 +357,96 @@ class UnitView {
         });
     }
 
+    drawDebugArrow(startX, startY, endX, endY, color = 'rgba(0, 0, 255, 0.3)', lineWidth = 2, size = 10) {
+        const ctx = this.viewContext;
+        ctx.save();
+
+        // draw line
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        // draw arrowhead
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        const angle = Math.atan2(endY - startY, endX - startX);
+        ctx.lineTo(
+            endX - size * Math.cos(angle - Math.PI / 6), 
+            endY - size * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    drawDebugVisionCone(startX, startY, diameter, startAngle, endAngle, color = 'rgba(255, 255, 0, 0.1)') {
+        // Vykreslíme zrakové pole pouze v debug módu
+        const ctx = this.viewContext;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+
+        ctx.arc(
+            startX, 
+            startY, 
+            diameter, 
+            startAngle, 
+            endAngle
+        );
+        ctx.lineTo(startX, startY); // Uzavřeme cestu
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();   
+    }
+
     drawDebugVision() {
         // Vykreslíme zrakové pole pouze v debug módu
         if (!this.debugMode) return;
 
         // U zničených jednotek nevykreslujeme zrakové pole
         if (this.unit.isDead) return;
-        
-        const ctx = this.viewContext;
+
         const terrain = this.unit.game.terrain;
+        const unitPosition = GamePosition.getScreenPosition(
+            this.unit.x,
+            this.unit.y,
+            terrain.xOffset,
+            terrain.yOffset
+        );
 
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
-
-        // Draw vision cone
         const visionRange = this.unit.vision.visionRange;
-        const visionAngle = this.unit.vision.currentVisionAngle;
-        const visionWidth = this.unit.vision.visionWidth;
+        const visionAngle = this.unit.vision.currentVisionVector.getAngle();
+        const visionConeAngle = this.unit.vision.visionConeAngle;
 
-        const startAngle = visionAngle - visionWidth / 2;
-        const endAngle = visionAngle + visionWidth / 2;
-        
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(screenX, screenY);
+        const startAngle = visionAngle - visionConeAngle / 2;
+        const endAngle = visionAngle + visionConeAngle / 2;
 
-        ctx.arc(
-            screenX, 
-            screenY, 
-            visionRange, 
-            startAngle, 
+        this.drawDebugVisionCone(
+            unitPosition.x,
+            unitPosition.y,
+            visionRange,
+            startAngle,
             endAngle
         );
-        ctx.lineTo(screenX, screenY);
-        ctx.fillStyle = this.visionColor;
-        ctx.fill();
-        ctx.restore();
 
-        // Draw vision direction arrow
-        const arrowLength = visionRange;
-        const arrowAngle = this.unit.vision.currentVisionAngle;
-        const arrowLineWidth = 2;
-        const arrowSize = 10;
-        const arrowEndX = screenX + Math.cos(arrowAngle) * arrowLength;
-        const arrowEndY = screenY + Math.sin(arrowAngle) * arrowLength;
-
-        ctx.strokeStyle = 'rgba(0, 0, 255, 0.3)';
-        ctx.lineWidth = arrowLineWidth;
-        ctx.beginPath();
-        ctx.moveTo(screenX, screenY);
-        ctx.lineTo(arrowEndX, arrowEndY);
-        ctx.lineTo(
-            arrowEndX - arrowSize * Math.cos(arrowAngle - Math.PI / 6),
-            arrowEndY - arrowSize * Math.sin(arrowAngle - Math.PI / 6)
+        this.drawDebugArrow(
+            unitPosition.x,
+            unitPosition.y, 
+            unitPosition.x + this.unit.vision.currentVisionVector.x,
+            unitPosition.y + this.unit.vision.currentVisionVector.y,
+            'rgba(0, 0, 255, 0.3)'
         );
-        ctx.moveTo(arrowEndX, arrowEndY);
-        ctx.lineTo(
-            arrowEndX - arrowSize * Math.cos(arrowAngle + Math.PI / 6),
-            arrowEndY - arrowSize * Math.sin(arrowAngle + Math.PI / 6)
-        );
-        ctx.stroke();
 
+        this.drawDebugArrow(
+            unitPosition.x,
+            unitPosition.y, 
+            unitPosition.x + this.unit.vision.targetVisionVector.x,
+            unitPosition.y + this.unit.vision.targetVisionVector.y,
+            'rgba(255, 0, 255, 0.3)'
+        );
     }
 
     drawDebugTexts() {
@@ -451,7 +478,7 @@ class UnitView {
         viewContext.font = '10px Arial';
         viewContext.textAlign = 'center';
         viewContext.fillText(
-            `${Math.round(this.unit.health)}%`, 
+            `${Math.round(this.unit.health)}% ${this.unit.movement.currentVelocity.x.toFixed(2)} ${this.unit.movement.currentVelocity.y.toFixed(2)}`, 
             screenX, 
             screenY - this.unit.size - 30
         );
