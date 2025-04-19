@@ -1,3 +1,7 @@
+if (typeof require == 'function') {
+    require('./game-position.js');
+}
+
 class UnitView {
     constructor(unit, viewContext, cfg = {}) {
         this.unit = unit;
@@ -46,7 +50,7 @@ class UnitView {
 
     draw() {
         // Vykreslíme jednotku
-        this.drawUnit();
+        this.drawUnitSprite();
         
 
         // Vykreslíme zdraví
@@ -54,6 +58,10 @@ class UnitView {
 
         // Vykreslíme oheň
         this.drawFire();
+        this.drawSmoke();
+
+        // Vykreslení výběru
+        this.drawSelection();
 
         // Vykreslíme debug info
         this.drawDebugInfo();
@@ -71,6 +79,26 @@ class UnitView {
     startFlash() {
         this.flashActive = true;
         this.flashTimer = this.flashDuration;
+    }
+
+    drawSelection() {
+        const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
+
+        if (this.unit.isSelected) {
+            ctx.beginPath();
+            ctx.arc(
+                screenX,
+                screenY, 
+                this.unit.size + 5, 0, 
+                Math.PI * 2
+            );
+            ctx.strokeStyle = this.selectedColor;
+            ctx.lineWidth = this.selectedLineWidth;
+            ctx.stroke();
+        }
     }
 
     drawMuzzleFlash(angle) {
@@ -104,8 +132,8 @@ class UnitView {
     }
 
     drawExclamationMark() {
-        const x = this.unit.x
-        const y = this.unit.y
+        const terrain = this.unit.game.terrain;
+        const position = GamePosition.getScreenPosition(this.unit.x, this.unit.y, terrain.xOffset, terrain.yOffset);
         const size = 10
         const ctx = this.viewContext;
 
@@ -114,11 +142,11 @@ class UnitView {
         ctx.font = `${size * 1.5}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('!', x, y);
+        ctx.fillText('!', position.x, position.y);
         ctx.restore();
     }
 
-    drawUnit() {
+    drawUnitSprite() {
         const ctx = this.viewContext;
         const terrain = this.unit.game.terrain;
         const canvas = this.unit.game.view.canvas;
@@ -138,29 +166,7 @@ class UnitView {
             ctx.save();
             ctx.globalAlpha = 0.5; // Zničené jednotky jsou průhlednější
         }
-
-        // Vykreslíme vozidlo
-        this.drawVehicleSprite();
         
-        
-        // Vykreslíme oheň - už se to vykresluje v draw
-        // if (this.unit.isOnFire || this.unit.isDead) {
-        //     this.drawFire();
-        // }
-        
-        // Draw exclamation mark in debug mode if unit sees enemies
-        // if (this.debugMode && this.unit.hasVisibleEnemies) {
-        //     this.drawExclamationMark();
-        // }
-    }
-
-    drawVehicleSprite() {
-        const ctx = this.viewContext;
-        const terrain = this.unit.game.terrain;
-        // Výpočet pozice jednotky s ohledem na offset mapy
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
-
         ctx.save(); // TODO: proč je tu tohle?
         ctx.translate(screenX, screenY);
 
@@ -187,21 +193,6 @@ class UnitView {
         
         ctx.restore(); // TODO: proč je tu tohle?
         
-        // Vykreslení zdraví - už se to vykresluje v drawUnit
-        // this.drawHealth();
-        
-        // Vykreslení vidění - už se to vykresluje v drawDebugVision
-        // this.drawVision();
-        
-        // Vykreslení výběru
-        // TODO: posunutí o offset terénu
-        if (this.unit.isSelected) {
-            ctx.beginPath();
-            ctx.arc(screenX, screenY, this.unit.size + 5, 0, Math.PI * 2);
-            ctx.strokeStyle = this.selectedColor;
-            ctx.lineWidth = this.selectedLineWidth;
-            ctx.stroke();
-        }
     }
 
     drawHealth() {
@@ -238,12 +229,6 @@ class UnitView {
     drawFire() {
         if (!this.unit.isOnFire && !this.unit.isDead) return;
 
-        const ctx = this.viewContext;
-        const terrain = this.unit.game.terrain;
-
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
-
         // Update and draw fire particles
         for (let i = this.fireParticles.length - 1; i >= 0; i--) {
             const particle = this.fireParticles[i];
@@ -254,17 +239,64 @@ class UnitView {
                 continue;
             }
 
-            // Update particle position
-            particle.x += particle.vx + screenX;
-            particle.y += particle.vy + screenY;
-
-            // Draw particle
-            const alpha = particle.lifetime / this.fireParticleLifetime;
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${particle.color}, ${alpha})`;
-            ctx.fill();
+            this.drawFireParticle(particle);
         }
+
+        // Add new particles
+        if (this.fireParticles.length < this.maxFireParticles) {
+            this.addFireParticle();
+        }
+    }
+
+    drawFireParticle(particle) {
+        const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
+
+        // Update particle position
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        const position = GamePosition.getScreenPosition(particle.x, particle.y, terrain.xOffset, terrain.yOffset);
+
+        const alpha = particle.lifetime / this.fireParticleLifetime;
+        ctx.beginPath();
+        ctx.arc(
+            position.x,
+            position.y,
+            particle.size,
+            0,
+            Math.PI * 2
+        );
+        ctx.fillStyle = `rgba(${particle.color}, ${alpha})`;
+        ctx.fill();
+    }
+
+    addFireParticle() {        
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.5 + Math.random() * 1.5;
+        const size = 2 + Math.random() * 3;
+        
+        // Random fire color (yellow to red)
+        const r = 255;
+        const g = 100 + Math.random() * 155;
+        const b = 0;
+        
+        this.fireParticles.push({
+            x: this.unit.x,
+            y: this.unit.y,
+            vx: Math.cos(angle) * speed,
+            vy: -0.1 - Math.random() * 2,
+            size: size,
+            color: `${r}, ${g}, ${b}`,
+            lifetime: this.fireParticleLifetime
+        });
+    }
+
+    drawSmoke() {
+        if (!this.unit.isOnFire && !this.unit.isDead) return;
+
+        const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
 
         // Update and draw smoke particles
         for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
@@ -276,53 +308,40 @@ class UnitView {
                 continue;
             }
 
-            // Update particle position and size
-            particle.x += particle.vx + screenX;
-            particle.y += particle.vy + screenY;
-            particle.size += 0.2;
-            particle.vy -= 0.05;
-
-            // Draw particle
-            const alpha = particle.lifetime / this.smokeParticleLifetime;
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
-            ctx.fill();
+            this.drawSmokeParticle(particle);
         }
 
         // Add new particles
-        if (this.fireParticles.length < this.maxFireParticles) {
-            this.addFireParticle();
-        }
         if (this.smokeParticles.length < this.maxSmokeParticles) {
             this.addSmokeParticle();
         }
     }
 
-    addFireParticle() {
+    drawSmokeParticle(particle) {
+        const ctx = this.viewContext;
         const terrain = this.unit.game.terrain;
 
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
+        
+        // Update particle position and size
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.size += 0.2;
+        particle.vy -= 0.05;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 0.5 + Math.random() * 1.5;
-        const size = 2 + Math.random() * 3;
-        
-        // Random fire color (yellow to red)
-        const r = 255;
-        const g = 100 + Math.random() * 155;
-        const b = 0;
-        
-        this.fireParticles.push({
-            x: this.unit.x + screenX,
-            y: this.unit.y + screenY,
-            vx: Math.cos(angle) * speed,
-            vy: -0.1 - Math.random() * 2,
-            size: size,
-            color: `${r}, ${g}, ${b}`,
-            lifetime: this.fireParticleLifetime
-        });
+        const position = GamePosition.getScreenPosition(particle.x, particle.y, terrain.xOffset, terrain.yOffset);
+
+        // Draw particle
+        const alpha = particle.lifetime / this.smokeParticleLifetime;
+        ctx.beginPath();
+        ctx.arc(
+            position.x,
+            position.y,
+            particle.size,
+            0,
+            Math.PI * 2
+        );
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
+        ctx.fill();
     }
 
     addSmokeParticle() {
