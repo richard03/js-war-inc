@@ -14,7 +14,7 @@ class Game {
         this.view = new GameView(this);
         this.terrain = new Terrain(this);
         this.scrollSpeed = 10; // Rychlost scrollování
-        this.scrollMargin = 5; // Vzdálenost od okraje, kdy začne scrollování
+        this.scrollMargin = 10; // Vzdálenost od okraje, kdy začne scrollování
         
         // Inicializace v správném pořadí
         this.resizeCanvas();
@@ -37,6 +37,7 @@ class Game {
     }
     
     setupEventListeners() {
+        
         window.addEventListener('resize', () => this.resizeCanvas());
         
         // Add Escape key listener
@@ -58,15 +59,18 @@ class Game {
         });
         
         window.addEventListener('mousedown', (e) => {
-            this.dragStart = { x: e.clientX, y: e.clientY };
+            this.dragStart = { 
+                x: e.clientX + this.terrain.xOffset, 
+                y: e.clientY + this.terrain.yOffset
+            };
         });
 
         window.addEventListener('mousemove', (e) => {
             
             if (this.dragStart) {
                 // Mark that the mouse has moved during drag
-                const dx = e.clientX - this.dragStart.x;
-                const dy = e.clientY - this.dragStart.y;
+                const dx = e.clientX + this.terrain.xOffset - this.dragStart.x;
+                const dy = e.clientY + this.terrain.yOffset - this.dragStart.y;
                 if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
                     this.isDragging = true;
                 } else {
@@ -78,18 +82,16 @@ class Game {
             
             // If dragging, select units within the selection box
             if (this.isDragging) {
-                const startX = this.dragStart.x - this.view.canvasLeft;
-                const startY = this.dragStart.y - this.view.canvasTop;
-                const endX = e.clientX - this.view.boundingClientRectangle.left;
-                const endY = e.clientY - this.view.boundingClientRectangle.top;
+                const startX = this.dragStart.x + this.terrain.xOffset - this.view.canvasLeft;
+                const startY = this.dragStart.y + this.terrain.yOffset - this.view.canvasTop;
+                const endX = e.clientX + this.terrain.xOffset - this.view.boundingClientRectangle.left;
+                const endY = e.clientY + this.terrain.yOffset - this.view.boundingClientRectangle.top;
                 
                 // Clear previous selection if shift is not pressed and we started dragging from empty space
                 const clickedUnit = Array.from(this.units).find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
                 if (!e.shiftKey && !clickedUnit) {
                     this.clearSelection();
                 }
-                
-                
                 
                 // Create formation if multiple units are selected
                 // TODO: toto asi není potřeba, formace se vytvoří při puštění tlačítka (mouseup)
@@ -104,8 +106,11 @@ class Game {
 
         window.addEventListener('mouseup', (e) => {
             if (this.debugMode) console.log("Mouse up");
-            const x = e.clientX - this.view.boundingClientRectangle.left;
-            const y = e.clientY - this.view.boundingClientRectangle.top;
+            // const x = e.clientX - this.view.boundingClientRectangle.left;
+            // const y = e.clientY - this.view.boundingClientRectangle.top;
+            const x = e.clientX + this.terrain.xOffset - this.view.boundingClientRectangle.left;
+            const y = e.clientY + this.terrain.yOffset - this.view.boundingClientRectangle.top;
+            
             
             // Handle right click to clear selection
             if (e.button === 2) { // Right mouse button
@@ -289,7 +294,11 @@ class Game {
             
         // Draw selection box if dragging
         if (this.isDragging) {
-            this.view.drawSelectBox(this.dragStart.x, this.dragStart.y, this.mousePosition.x, this.mousePosition.y);
+            this.view.drawSelectBox(
+                this.dragStart.x, 
+                this.dragStart.y, 
+                this.mousePosition.x, 
+                this.mousePosition.y);
         }
 
         requestAnimationFrame(() => this.gameLoop());
@@ -331,8 +340,6 @@ class Game {
         // Omezení scrollování na hranice mapy
         this.view.x = Math.max(0, Math.min(targetX, this.terrain.mapWidth * this.terrain.tileSize - this.view.canvas.width));
         this.view.y = Math.max(0, Math.min(targetY, this.terrain.mapHeight * this.terrain.tileSize - this.view.canvas.height));
-
-        if (this.debugMode) console.log("targetX: " + targetX + " targetY: " + targetY);
 
         this.terrain.xOffset = this.view.x;
         this.terrain.yOffset = this.view.y;

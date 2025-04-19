@@ -2,10 +2,11 @@ class UnitView {
     constructor(unit, viewContext, cfg = {}) {
         this.unit = unit;
         this.viewContext = viewContext;
-        this.debugMode = typeof cfg.debugMode == "undefined" ? true : cfg.debugMode;
+        this.debugMode = unit.game.debugMode;
         this.originalColor = cfg.color || '#00ff00';
         this.currentColor = this.originalColor;
         this.selectedColor = cfg.selectedColor || '#00ff00';
+        this.selectedLineWidth = cfg.selectedLineWidth || 3;
         this.visionColor = cfg.visionColor || 'rgba(255, 255, 0, 0.01)';
         this.visionBorderColor = cfg.visionBorderColor || 'rgba(255, 255, 0, 0.03)';
         this.healthColors = cfg.healthColors || {
@@ -15,6 +16,7 @@ class UnitView {
         };
         this.textColor = cfg.textColor || 'white';
         this.healthBarBackground = cfg.healthBarBackground || 'rgba(0, 0, 0, 0.5)';
+        this.healthBarHeight = cfg.healthBarHeight || 4;
         
         // Flash effect properties
         this.flashActive = typeof cfg.flashActive == "undefined" ? false : cfg.flashActive;
@@ -118,6 +120,18 @@ class UnitView {
 
     drawUnit() {
         const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
+        const canvas = this.unit.game.view.canvas;
+        
+        // Výpočet pozice jednotky s ohledem na offset terénu
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
+        
+        // Kontrola, zda je jednotka viditelná
+        if (screenX < -this.unit.size || screenX > canvas.width + this.unit.size ||
+            screenY < -this.unit.size || screenY > canvas.height + this.unit.size) {
+            return; // Jednotka není viditelná
+        }
 
         // Pokud je jednotka zničena, vykreslíme ji s nižší průhledností
         if (this.unit.isDead) {
@@ -128,29 +142,28 @@ class UnitView {
         // Vykreslíme vozidlo
         this.drawVehicleSprite();
         
-        if (this.unit.isDead) {
-            ctx.restore();
-        }
-
-        // Vykreslíme oheň pokud je jednotka v ohni nebo zničena
-        if (this.unit.isOnFire || this.unit.isDead) {
-            this.drawFire();
-        }
+        
+        // Vykreslíme oheň - už se to vykresluje v draw
+        // if (this.unit.isOnFire || this.unit.isDead) {
+        //     this.drawFire();
+        // }
         
         // Draw exclamation mark in debug mode if unit sees enemies
-        if (this.debugMode && this.unit.hasVisibleEnemies) {
-            this.drawExclamationMark();
-        }
+        // if (this.debugMode && this.unit.hasVisibleEnemies) {
+        //     this.drawExclamationMark();
+        // }
     }
 
     drawVehicleSprite() {
         const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
+        // Výpočet pozice jednotky s ohledem na offset mapy
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
 
-        ctx.save();
-        
-        // Move to the center of the unit
-        ctx.translate(this.unit.x, this.unit.y);
-        
+        ctx.save(); // TODO: proč je tu tohle?
+        ctx.translate(screenX, screenY);
+
         // Rotate based on vision angle + 90 degrees
         ctx.rotate(this.unit.vision.currentVisionAngle + Math.PI/2);
         
@@ -172,14 +185,21 @@ class UnitView {
             displayHeight
         );
         
-        ctx.restore();
-
-        // Draw selection border if selected
+        ctx.restore(); // TODO: proč je tu tohle?
+        
+        // Vykreslení zdraví - už se to vykresluje v drawUnit
+        // this.drawHealth();
+        
+        // Vykreslení vidění - už se to vykresluje v drawDebugVision
+        // this.drawVision();
+        
+        // Vykreslení výběru
+        // TODO: posunutí o offset terénu
         if (this.unit.isSelected) {
             ctx.beginPath();
-            ctx.arc(this.unit.x, this.unit.y, this.unit.size, 0, Math.PI * 2);
+            ctx.arc(screenX, screenY, this.unit.size + 5, 0, Math.PI * 2);
             ctx.strokeStyle = this.selectedColor;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = this.selectedLineWidth;
             ctx.stroke();
         }
     }
@@ -187,15 +207,21 @@ class UnitView {
     drawHealth() {
         // U zničených jednotek nevykreslujeme zdraví
         if (this.unit.isDead) return;
-
-        const ctx = this.viewContext;
-
-        // Health bar dimensions
-        const healthBarWidth = 20;
-        const healthBarHeight = 4;
-        const healthBarX = this.unit.x - healthBarWidth / 2;
-        const healthBarY = this.unit.y - this.unit.size - 8;
         
+        const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
+        
+        // Výpočet pozice jednotky s ohledem na offset mapy
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
+        
+        const healthBarWidth = this.unit.size;
+        const healthBarHeight = this.healthBarHeight;
+        
+        const healthBarX = screenX - healthBarWidth/2;
+        const healthBarY = screenY - this.unit.size - 8;
+
+    
         // Draw health bar background
         ctx.fillStyle = this.healthBarBackground;
         ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
@@ -206,18 +232,17 @@ class UnitView {
                           this.healthColors.low;
         ctx.fillStyle = healthColor;
         ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (this.unit.health / 100), healthBarHeight);
-        
-        // Draw health text
-        ctx.fillStyle = this.textColor;
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${Math.round(this.unit.health)}%`, this.unit.x, this.unit.y - this.unit.size - 20);
+         
     }
 
     drawFire() {
         if (!this.unit.isOnFire && !this.unit.isDead) return;
 
         const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
+
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
 
         // Update and draw fire particles
         for (let i = this.fireParticles.length - 1; i >= 0; i--) {
@@ -230,8 +255,8 @@ class UnitView {
             }
 
             // Update particle position
-            particle.x += particle.vx;
-            particle.y += particle.vy;
+            particle.x += particle.vx + screenX;
+            particle.y += particle.vy + screenY;
 
             // Draw particle
             const alpha = particle.lifetime / this.fireParticleLifetime;
@@ -252,8 +277,8 @@ class UnitView {
             }
 
             // Update particle position and size
-            particle.x += particle.vx;
-            particle.y += particle.vy;
+            particle.x += particle.vx + screenX;
+            particle.y += particle.vy + screenY;
             particle.size += 0.2;
             particle.vy -= 0.05;
 
@@ -275,6 +300,11 @@ class UnitView {
     }
 
     addFireParticle() {
+        const terrain = this.unit.game.terrain;
+
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
+
         const angle = Math.random() * Math.PI * 2;
         const speed = 0.5 + Math.random() * 1.5;
         const size = 2 + Math.random() * 3;
@@ -285,8 +315,8 @@ class UnitView {
         const b = 0;
         
         this.fireParticles.push({
-            x: this.unit.x,
-            y: this.unit.y,
+            x: this.unit.x + screenX,
+            y: this.unit.y + screenY,
             vx: Math.cos(angle) * speed,
             vy: -0.1 - Math.random() * 2,
             size: size,
@@ -311,94 +341,134 @@ class UnitView {
     }
 
     drawDebugVision() {
-        // U zničených jednotek nevykreslujeme zrakové pole
-        if (this.unit.isDead) return;
-
         // Vykreslíme zrakové pole pouze v debug módu
         if (!this.debugMode) return;
 
+        // U zničených jednotek nevykreslujeme zrakové pole
+        if (this.unit.isDead) return;
+        
         const ctx = this.viewContext;
+        const terrain = this.unit.game.terrain;
 
-       // Draw vision cone
-       ctx.save();
-       ctx.beginPath();
-       ctx.moveTo(this.unit.x, this.unit.y);
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
+
+        // Draw vision cone
+        const visionRange = this.unit.vision.visionRange;
+        const visionAngle = this.unit.vision.currentVisionAngle;
+        const visionWidth = this.unit.vision.visionWidth;
+
+        const startAngle = visionAngle - visionWidth / 2;
+        const endAngle = visionAngle + visionWidth / 2;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(screenX, screenY);
+
+        ctx.arc(
+            screenX, 
+            screenY, 
+            visionRange, 
+            startAngle, 
+            endAngle
+        );
+        ctx.lineTo(screenX, screenY);
+        ctx.fillStyle = this.visionColor;
+        ctx.fill();
+        ctx.restore();
+
+        // Draw vision direction arrow
+        const arrowLength = visionRange;
+        const arrowAngle = this.unit.vision.currentVisionAngle;
+        const arrowLineWidth = 2;
+        const arrowSize = 10;
+        const arrowEndX = screenX + Math.cos(arrowAngle) * arrowLength;
+        const arrowEndY = screenY + Math.sin(arrowAngle) * arrowLength;
+
+        ctx.strokeStyle = 'rgba(0, 0, 255, 0.3)';
+        ctx.lineWidth = arrowLineWidth;
+        ctx.beginPath();
+        ctx.moveTo(screenX, screenY);
+        ctx.lineTo(arrowEndX, arrowEndY);
+        ctx.lineTo(
+            arrowEndX - arrowSize * Math.cos(arrowAngle - Math.PI / 6),
+            arrowEndY - arrowSize * Math.sin(arrowAngle - Math.PI / 6)
+        );
+        ctx.moveTo(arrowEndX, arrowEndY);
+        ctx.lineTo(
+            arrowEndX - arrowSize * Math.cos(arrowAngle + Math.PI / 6),
+            arrowEndY - arrowSize * Math.sin(arrowAngle + Math.PI / 6)
+        );
+        ctx.stroke();
+
+    }
+
+    drawDebugTexts() {
+        // Vykreslíme texty pro debug
+        if (!this.debugMode) return;
        
-       // Vypočítáme koncové body kužele
-       const startAngle = this.unit.vision.currentVisionAngle - this.unit.vision.visionConeAngle / 2;
-       const endAngle = this.unit.vision.currentVisionAngle + this.unit.vision.visionConeAngle / 2;
-       // Vykreslíme oblouk
-       this.viewContext.arc(this.unit.x, this.unit.y, this.unit.vision.visionRange, startAngle, endAngle);
+        const viewContext = this.viewContext;
+        const terrain = this.unit.game.terrain;
 
-       // Vrátíme se zpět do středu
-       this.viewContext.lineTo(this.unit.x, this.unit.y);
-       // Nastavíme barvu a průhlednost
-       this.viewContext.fillStyle = this.visionColor;
-       this.viewContext.fill();
-       this.viewContext.restore();
+        const screenX = this.unit.x - terrain.xOffset;
+        const screenY = this.unit.y - terrain.yOffset;
 
-       // Draw vision direction arrow
-       const arrowLength = this.unit.vision.visionRange;
-       const angle = this.unit.vision.currentVisionAngle;
-       const endX = this.unit.x + Math.cos(angle) * arrowLength;
-       const endY = this.unit.y + Math.sin(angle) * arrowLength;
-
-       ctx.strokeStyle = 'rgba(0, 0, 255, 0.3)';
-       ctx.lineWidth = 2;
-       ctx.beginPath();
-       ctx.moveTo(this.unit.x, this.unit.y);
-       ctx.lineTo(endX, endY);
-       
-       // Draw arrow head
-       const arrowSize = 10;
-       ctx.lineTo(
-           endX - arrowSize * Math.cos(angle - Math.PI / 6),
-           endY - arrowSize * Math.sin(angle - Math.PI / 6)
-       );
-       ctx.moveTo(endX, endY);
-       ctx.lineTo(
-           endX - arrowSize * Math.cos(angle + Math.PI / 6),
-           endY - arrowSize * Math.sin(angle + Math.PI / 6)
-       );
-       ctx.stroke();
-   }
-
-    drawDebugInfo() {
-
-        // Vykreslíme zrakové pole
-        this.drawDebugVision();
+        // Vykreslíme pozadí pro lepší čitelnost
+        this.viewContext.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.viewContext.fillRect(
+            screenX - 50,
+            screenY - this.unit.size - 40,
+            100,
+            30
+        );
 
         // Získáme výšku terénu pod jednotkou
         const tileX = Math.floor(this.unit.x / this.unit.game.terrain.tileSize);
         const tileY = Math.floor(this.unit.y / this.unit.game.terrain.tileSize);
         const terrainHeight = this.unit.game.terrain.terrainMap[tileY][tileX];
+
+        // Draw health text
+        viewContext.fillStyle = this.textColor;
+        viewContext.font = '10px Arial';
+        viewContext.textAlign = 'center';
+        viewContext.fillText(
+            `${Math.round(this.unit.health)}%`, 
+            screenX, 
+            screenY - this.unit.size - 30
+        );
+        viewContext.restore();
+
+        // Draw position text
+        let text = '';
+        text += `${this.unit.x.toFixed(2)}`;
+        text += `, ${this.unit.y.toFixed(2)}`;
+        text += `, ${terrainHeight.toFixed(2)}`;
+
         
+        // let textWidth = this.viewContext.measureText(text).width;
+            
+        
+        viewContext.fillText(
+            text,
+            screenX,
+            screenY - this.unit.size - 15
+        );
+       
         // Vykreslíme výšku nad jednotkou
         this.viewContext.save();
-        this.viewContext.font = '12px Arial';
-        this.viewContext.fillStyle = '#ffffff';
-        this.viewContext.strokeStyle = '#000000';
-        this.viewContext.lineWidth = 2;
+    }
+
+    drawDebugInfo() {
+        if (!this.debugMode) return;
         
-        const text = `Terén: ${terrainHeight.toFixed(2)}`;
-        const textWidth = this.viewContext.measureText(text).width;
-        
-        // Vykreslíme pozadí pro lepší čitelnost
-        this.viewContext.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        this.viewContext.fillRect(
-            this.unit.x - textWidth / 2 - 5,
-            this.unit.y - this.unit.size - 20,
-            textWidth + 10,
-            20
-        );
-        
-        // Vykreslíme text
-        this.viewContext.fillStyle = '#ffffff';
-        this.viewContext.fillText(
-            text,
-            this.unit.x - textWidth / 2,
-            this.unit.y - this.unit.size - 5
-        );
+        this.drawDebugVision();
+
+        this.drawDebugTexts();
+
+    
+        if (this.unit.hasVisibleEnemies) {
+            this.drawExclamationMark();
+        }
         
         this.viewContext.restore();
     }
