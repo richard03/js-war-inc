@@ -1,4 +1,4 @@
-const FuzzyMath = require('./fuzzy-math');
+const FuzzyMath = require('./fuzzy-math.js');
 
 describe('FuzzyMath', () => {
     describe('isClose', () => {
@@ -54,6 +54,51 @@ describe('FuzzyMath', () => {
         test('should handle reversed min/max', () => {
             expect(FuzzyMath.isInRange(5, 10, 0)).toBe(false);
             expect(FuzzyMath.isInRange(5, 0, 10)).toBe(true);
+        });
+    });
+
+    describe('addRandomFactor', () => {
+        test('should add random factor to value', () => {
+            const value = 10;
+            const factor = 0.1;
+            const result = FuzzyMath.addRandomFactor(value, factor);
+            expect(result).toBeGreaterThan(value - value * factor);
+            expect(result).toBeLessThan(value + value * factor);
+        });
+
+        test('should handle negative values', () => {
+            const value = -10;
+            const factor = 0.1;
+            const result = FuzzyMath.addRandomFactor(value, factor);
+            expect(result).toBeGreaterThan(value + value * factor);
+            expect(result).toBeLessThan(value - value * factor);
+        });
+
+        test('should handle zero value', () => {
+            const value = 0;
+            const factor = 0.1;
+            const result = FuzzyMath.addRandomFactor(value, factor);
+            expect(result).toBe(value);
+        });
+
+        test('should handle zero factor', () => {
+            const value = 10;
+            const factor = 0;
+            const result = FuzzyMath.addRandomFactor(value, factor);
+            expect(result).toBe(value);
+        });
+
+        test('should handle negative factor', () => {
+            const value = 10;
+            const factor = -0.1;
+            const result = FuzzyMath.addRandomFactor(value, factor);
+            expect(result).toBeLessThan(value);
+        });
+
+        test('should handle large factor', () => {
+            const value = 10;
+            const factor = 10;
+            const result = FuzzyMath.addRandomFactor(value, factor);
         });
     });
 }); 

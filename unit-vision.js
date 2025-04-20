@@ -14,7 +14,7 @@ class UnitVision {
 
         this.currentVisionVector = new Vector2(this.visionRange, 0);
         this.targetVisionVector = new Vector2(this.visionRange, 0);
-        this.visionRotationSpeed = cfg.visionRotationSpeed || 0.1; // Rychlost rotace zrakového pole
+        this.visionRotationSpeed = cfg.visionRotationSpeed || 0.03; // Rychlost rotace zrakového pole
     
     }
 
@@ -61,6 +61,26 @@ class UnitVision {
         const targetAngle = targetVector.getAngle();
         this.targetVisionVector = new Vector2(this.visionRange, 0).rotate(targetAngle);
         this.currentVisionVector = this.targetVisionVector.clone();
+    }
+
+    /**
+     * Najde nejbližšího nepřítele
+     * @returns {Unit} Nejblíže se nacházející nepřítel
+     */
+    findNearestEnemy() {
+        let nearestEnemy = null;
+        let minDistance = this.visionRange;
+        for (const unit of this.unit.game.units) {
+            if (unit.isEnemy !== this.unit.isEnemy) {
+                const targetVector = new Vector2(unit.x - this.unit.x, unit.y - this.unit.y);
+                const distance = targetVector.length;
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = unit;
+                }
+            }
+        }
+        return nearestEnemy;
     }
 
     isInVisionCone(x, y) {

@@ -124,7 +124,8 @@ class UnitMovement {
 
         const targetVector = new Vector2(x - this.unit.x, y - this.unit.y);
         
-        this.currentVelocity = new Vector2(this.maxVelocity, 0).rotate(targetVector.getAngle());
+        const velocity = FuzzyMath.addRandomFactor(this.maxVelocity, 0.1);
+        this.currentVelocity = new Vector2(velocity, 0).rotate(targetVector.getAngle());
 
         // this.update does the rest
     }

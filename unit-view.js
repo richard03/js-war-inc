@@ -74,11 +74,6 @@ class UnitView {
         }
     }
 
-    startFlash() {
-        this.flashActive = true;
-        this.flashTimer = this.flashDuration;
-    }
-
     drawSelection() {
         const ctx = this.viewContext;
         const terrain = this.unit.game.terrain;
@@ -484,7 +479,7 @@ class UnitView {
         viewContext.font = '10px Arial';
         viewContext.textAlign = 'center';
         viewContext.fillText(
-            `${Math.round(this.unit.health)}% ${this.unit.movement.currentVelocity.x.toFixed(2)} ${this.unit.movement.currentVelocity.y.toFixed(2)}`, 
+            `${Math.round(this.unit.health)}% ${this.unit.combat.shotCooldown.toFixed(2)}`, 
             screenX, 
             screenY - this.unit.size - 30
         );
