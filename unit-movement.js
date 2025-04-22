@@ -3,7 +3,7 @@ class UnitMovement {
         this.unit = unit;
         this.maxSpeed = cfg.maxSpeed || 3;
         this.target = null;
-        this.targetRadius = cfg.targetRadius || 3; // Poloměr, ve kterém považujeme jednotku za "u cíle"
+        this.targetRadius = cfg.targetRadius || 5; // Poloměr, ve kterém považujeme jednotku za "u cíle"
         
         this.currentVelocity = new Vector2(0, 0);
 
@@ -44,6 +44,8 @@ class UnitMovement {
 
         // Nová pozie po update
         const newPositionVector = new Vector2(this.unit.x + this.currentVelocity.x, this.unit.y + this.currentVelocity.y);
+        
+        
 
         // Pokud terén není schůdný
         if (!this.unit.game.terrain.isTileWalkable(newPositionVector.x, newPositionVector.y)) {
@@ -87,11 +89,50 @@ class UnitMovement {
         // }
     }
 
-    isNearTarget() {
+    // Vypočítá minimální vzdálenost potřebnou pro otočení k cíli
+    calculateMinTurningDistance() {
+        if (!this.target) return 0;
+
         const targetVector = new Vector2(this.target.x - this.unit.x, this.target.y - this.unit.y);
-        // zastav do vzdálenosti targetRadius od cíle, vezmi v úvahu i rychlost.
-        // Nepřejeď cíl, to by způsobilo nevhodné otáčení.
-        return targetVector.length < this.targetRadius + this.currentVelocity.length;
+        const visionAngle = this.unit.vision.currentVisionVector.getAngle();
+        let angleDiff = targetVector.getAngle() - visionAngle;
+
+        // Normalizujeme úhel do rozsahu -PI až PI
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+        // Pokud je úhel malý, nepotřebujeme otočení
+        if (Math.abs(angleDiff) < 0.1) return 0;
+
+        // Vypočítáme minimální poloměr otočení
+        // Použijeme vzorec pro minimální poloměr otočení: r = v / ω
+        // kde v je rychlost a ω je úhlová rychlost
+        const minTurningRadius = this.maxSpeed / this.unit.vision.visionRotationSpeed;
+
+        // Vypočítáme minimální vzdálenost potřebnou pro otočení
+        // Použijeme vzorec pro délku oblouku: s = r * θ
+        const minTurningDistance = minTurningRadius * Math.abs(angleDiff);
+
+        return minTurningDistance;
+    }
+
+    isNearTarget() {
+        if (!this.target) return true;
+
+        const targetVector = new Vector2(this.target.x - this.unit.x, this.target.y - this.unit.y);
+        const distance = targetVector.length;
+        
+        // Vypočítáme minimální vzdálenost potřebnou pro otočení
+        const minTurningDistance = this.calculateMinTurningDistance();
+        
+        // Pokud je vzdálenost menší než minimální vzdálenost pro otočení,
+        // jednotka se k cíli nikdy nedostane
+        if (distance < minTurningDistance) {
+            return true;
+        }
+
+        // Zastavíme, pokud jsme v cílovém poloměru
+        return distance < this.targetRadius;
     }
 
     // calculateAvoidanceForce(otherUnit, distance) {

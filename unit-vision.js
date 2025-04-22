@@ -1,7 +1,3 @@
-if (typeof require == 'function') {
-    Vector2 = require('./vector2.js');
-}
-
 /**
  * Manages unit vision and targeting.
  */

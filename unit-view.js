@@ -81,7 +81,7 @@ class UnitView {
         const screenY = this.unit.y - terrain.yOffset;
 
         if (this.unit.isSelected) {
-            ctx.beginPath();
+        ctx.beginPath();
             ctx.arc(
                 screenX,
                 screenY, 
