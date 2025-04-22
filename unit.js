@@ -9,8 +9,6 @@ class Unit {
         this.y = cfg.y;
         this.size = cfg.size || 20;
         this.isSelected = cfg.isSelected || false;
-        this.targetX = this.x;
-        this.targetY = this.y;
         this.personalSpace = cfg.personalSpace || 40;
         this.isEnemy = cfg.isEnemy;
         this.isDead = typeof cfg.isDead == "undefined" ? false : cfg.isDead;

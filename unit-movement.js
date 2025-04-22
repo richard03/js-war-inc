@@ -1,30 +1,59 @@
 class UnitMovement {
     constructor(unit, cfg = {}) {
         this.unit = unit;
-        this.targetRadius = cfg.targetRadius || 20; // Poloměr, ve kterém považujeme jednotku za "u cíle"
-        this.startX = this.unit.x;
-        this.startY = this.unit.y;
-        this.maxVelocity = cfg.maxVelocity || 3;
+        this.maxSpeed = cfg.maxSpeed || 3;
+        this.target = null;
+        this.targetRadius = cfg.targetRadius || 3; // Poloměr, ve kterém považujeme jednotku za "u cíle"
+        
         this.currentVelocity = new Vector2(0, 0);
-        this.collisionCooldown = cfg.collisionCooldown || 0;
+
+        // this.movementStartPosition = {x: unit.x, y: unit.y};
+        // this.collisionCooldown = cfg.collisionCooldown || 0;
     }
 
     update() {
-        
-        const newX = this.unit.x + this.currentVelocity.x;
-        const newY = this.unit.y + this.currentVelocity.y;
-        
-        if (this.unit.game.terrain.isTileWalkable(newX, newY)) {
-            this.unit.x = newX;
-            this.unit.y = newY;
-        } else {
-            this.stop();
+        // Není-li nastaven cíl, neprovádíme nic
+        if (!this.target) {
+            return;
         }
 
+        // Pokud je jednotka u cíle, zastavíme
         if (this.isNearTarget()) {
             this.stop();
+            return;
         }
-        
+
+        const targetVector = new Vector2(this.target.x - this.unit.x, this.target.y - this.unit.y);
+        const speed = FuzzyMath.addRandomFactor(this.maxSpeed, 0.1);
+
+        // Pokud jednotka míří špatným směrem, musí se nejdřív otočit
+        // Tolerance je 5 stupňů + úhlová rychlost otáčení
+        const tolerance = Math.PI / 36 + this.unit.vision.visionRotationSpeed * 2;
+        const visionAngle = this.unit.vision.currentVisionVector.getAngle();
+        if ( !FuzzyMath.isClose(
+                targetVector.getAngle(), 
+                visionAngle,
+                tolerance)
+            ) {
+            
+            this.unit.vision.startTurningTo(this.target.x, this.target.y);
+            this.currentVelocity = new Vector2(speed, 0).rotate(visionAngle);
+        } else {
+            this.currentVelocity = new Vector2(speed, 0).rotate(targetVector.getAngle());
+        }
+
+        // Nová pozie po update
+        const newPositionVector = new Vector2(this.unit.x + this.currentVelocity.x, this.unit.y + this.currentVelocity.y);
+
+        // Pokud terén není schůdný
+        if (!this.unit.game.terrain.isTileWalkable(newPositionVector.x, newPositionVector.y)) {
+            // TODO: zkusit to obejít
+            this.stop();
+            return;
+        }
+        this.unit.x = newPositionVector.x;
+        this.unit.y = newPositionVector.y;
+
         // Snížíme cooldown srážky
         // if (this.collisionCooldown > 0) {
         //     this.collisionCooldown--;
@@ -59,11 +88,10 @@ class UnitMovement {
     }
 
     isNearTarget() {
-        const targetVector = new Vector2(
-            this.unit.targetX - this.unit.x, 
-            this.unit.targetY - this.unit.y
-        );
-        return targetVector.length < this.targetRadius;
+        const targetVector = new Vector2(this.target.x - this.unit.x, this.target.y - this.unit.y);
+        // zastav do vzdálenosti targetRadius od cíle, vezmi v úvahu i rychlost.
+        // Nepřejeď cíl, to by způsobilo nevhodné otáčení.
+        return targetVector.length < this.targetRadius + this.currentVelocity.length;
     }
 
     // calculateAvoidanceForce(otherUnit, distance) {
@@ -116,21 +144,13 @@ class UnitMovement {
     }
 
     moveTo(x, y) {
-        this.startX = this.unit.x;
-        this.startY = this.unit.y;
-
-        this.unit.targetX = x;
-        this.unit.targetY = y;
-
-        const targetVector = new Vector2(x - this.unit.x, y - this.unit.y);
-        
-        const velocity = FuzzyMath.addRandomFactor(this.maxVelocity, 0.1);
-        this.currentVelocity = new Vector2(velocity, 0).rotate(targetVector.getAngle());
+        this.target = {x, y};
 
         // this.update does the rest
     }
 
     stop() {
+        this.target = null;	
         this.currentVelocity = new Vector2(0, 0);
     }
 }
