@@ -4,33 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Isometric Game</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #1a1a1a;
-        }
-        canvas {
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
 
     <script src="fuzzy-math.js"></script>
     <script src="vector2.js"></script>
-    <script src="game-position.js"></script>
-    <script src="game-view.js"></script>
-    <script src="unit-vision.js"></script>
-    <script src="unit-movement.js"></script>
-    <script src="unit-combat.js"></script>
-    <script src="unit-view.js"></script>
-    <script src="audio.js"></script>
-    <script src="terrain.js"></script>
-    <script src="terrain-view.js"></script>
-    <script src="unit.js"></script>
-    <script src="formation.js"></script>
+
+    <script src="model/market-model.js"></script>
+    <script src="view/market-view.js"></script>
+    <script src="controller/market-controller.js"></script>
+
+    <script src="model/factory-model.js"></script>
+    <script src="view/factory-view.js"></script>
+
+    <script src="model/battlefield-model.js"></script>
+    <script src="view/battlefield-view.js"></script>
+
+    <script src="view/menu-view.js"></script>
+    <script src="controller/menu-controller.js"></script>
+    
     <script src="game.js"></script>
 </body>
 </html> 

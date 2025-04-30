@@ -11,6 +11,8 @@ body {
     align-items: center;
     min-height: 100vh;
     overflow: hidden;
+    color: white;
+    font-family: Arial, sans-serif;
 }
 
 .game-container {
@@ -21,7 +23,170 @@ body {
 
 #gameCanvas {
     background-color: #2a2a2a;
-    display: block;
+    display: none;
     width: 100%;
     height: 100%;
+}
+
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.menu-button {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #333;
+    color: white;
+    border: 2px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+    text-align: center;
+}
+
+.menu-button:hover {
+    background-color: #444;
+    transform: scale(1.05);
+}
+
+#exit {
+    background-color: #800000;
+}
+
+#exit:hover {
+    background-color: #a00000;
+}
+
+/* Market styles */
+.market-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.market-layout {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 100px);
+}
+
+.market-left-panel {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+.market-right-panel {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+}
+
+.balance-display {
+    font-size: 24px;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.stock-graph {
+    background-color: #222;
+    padding: 20px;
+    border-radius: 5px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.portfolio-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #333;
+}
+
+.portfolio-table th,
+.portfolio-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #444;
+}
+
+.portfolio-table th {
+    background-color: #222;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.portfolio-table tr:hover {
+    background-color: #444;
+}
+
+.portfolio-table td:nth-child(4),
+.portfolio-table td:nth-child(5) {
+    text-align: center;
+    width: 100px;
+}
+
+.buy-button,
+.sell-button {
+    padding: 5px 10px;
+    width: 80px;
+    background-color: #444;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.buy-button:hover {
+    background-color: #2a2;
+}
+
+.sell-button:hover {
+    background-color: #a22;
+}
+
+.buy-button:disabled,
+.sell-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.back-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    background-color: #444;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.back-button:hover {
+    background-color: #555;
 } 
