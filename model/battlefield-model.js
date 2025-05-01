@@ -7,10 +7,15 @@ class BattlefieldModel {
         // this.formations = new Set();
         // this.currentFormation = null;
 
+        this.viewport = {
+            width: 0,
+            height: 0
+        }
+
         this.terrain = {
             map: [],
-            xOffset: 0,
-            yOffset: 0,
+            offsetX: 0,
+            offsetY: 0,
             tileSize: 32,
             mapWidth: 100, // width of the map, in tiles
             mapHeight: 100, // height of the map, in tiles  
@@ -40,6 +45,19 @@ class BattlefieldModel {
     //     });
     //     this.units.add(unit);
     // }
+
+    /**
+     * Sets the viewport
+     * @param {Object} viewport - The viewport
+     * @param {number} viewport.width - The width of the viewport
+     * @param {number} viewport.height - The height of the viewport
+     */
+    setViewport(viewport) {
+        this.viewport = {
+            width: viewport.width,
+            height: viewport.height
+        };
+    }
 
     isTileWalkable(x, y) {
         const tileX = Math.floor(x / this.terrain.tileSize);
@@ -75,8 +93,16 @@ class BattlefieldModel {
      * @param {number} y - The amount to shift the terrain by on the y axis
      */
     shiftTerrain(x, y) {
-        this.terrain.xOffset += x;
-        this.terrain.yOffset += y;
+        const newOffsetX = this.terrain.offsetX - x;
+        const newOffsetY = this.terrain.offsetY - y;
+        const mapWidth = this.terrain.mapWidth * this.terrain.tileSize;
+        const mapHeight = this.terrain.mapHeight * this.terrain.tileSize;
+        if ( (newOffsetX > 0) && (newOffsetX + this.viewport.width < mapWidth) ) {
+            this.terrain.offsetX -= x;
+        }
+        if ( (newOffsetY > 0) && (newOffsetY + this.viewport.height < mapHeight) ) {
+            this.terrain.offsetY -= y;
+        }
     }
 
     /**
@@ -94,8 +120,8 @@ class BattlefieldModel {
                 let noiseHeight = 0; // noiseHeight je výsledná výška šumu
 
                 for (let i = 0; i < this.terrain.octaves; i++) {
-                    const sampleX = (x + this.terrain.xOffset + this.terrain.seed) * this.terrain.scale * frequency;
-                    const sampleY = (y + this.terrain.yOffset + this.terrain.seed) * this.terrain.scale * frequency;
+                    const sampleX = (x + this.terrain.offsetX + this.terrain.seed) * this.terrain.scale * frequency;
+                    const sampleY = (y + this.terrain.offsetY + this.terrain.seed) * this.terrain.scale * frequency;
                     
                     // Jednoduchá implementace Perlinova šumu
                     const x0 = Math.floor(sampleX);

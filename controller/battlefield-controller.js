@@ -18,6 +18,8 @@ class BattlefieldController {
     init() {
         this.model.init();
         this.view.init();
+        this.resize();
+        this.hide();
 
         // this.units = new Set();
         // TODO: init units
@@ -34,8 +36,14 @@ class BattlefieldController {
         this.view.hide();
     }
 
+    resize() {
+        this.view.resize();
+        const viewportSize = this.view.getViewportSize();
+        this.model.setViewport({width: viewportSize.width, height: viewportSize.height});
+    }
+
     setupEventListeners() {
-        window.addEventListener('resize', () => this.view.resize());
+        window.addEventListener('resize', () => this.resize());
 
         window.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
@@ -54,21 +62,21 @@ class BattlefieldController {
     handleKeyDown(e) {
         // Clear selection
         if (e.key === 'Escape') {
-            this.model.clearSelection();
+            this.clearSelection();
         }
     }
 
     handleMouseDown(e) {
         this.dragStart = { 
-            x: e.clientX + this.model.terrain.xOffset, 
-            y: e.clientY + this.model.terrain.yOffset
+            x: e.clientX + this.model.terrain.offsetX, 
+            y: e.clientY + this.model.terrain.offsetY
         };
     }
 
     handleMouseMove(e) {
         if (this.dragStart) {
-            const dx = e.clientX + this.model.terrain.xOffset - this.dragStart.x;
-            const dy = e.clientY + this.model.terrain.yOffset - this.dragStart.y;
+            const dx = e.clientX + this.model.terrain.offsetX - this.dragStart.x;
+            const dy = e.clientY + this.model.terrain.offsetY - this.dragStart.y;
             if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
                 this.isDragging = true;
             } else {
@@ -80,26 +88,26 @@ class BattlefieldController {
         
         // If dragging, select units within the selection box
         if (this.isDragging) {
-            const startX = this.dragStart.x + this.model.terrain.xOffset - this.view.canvasLeft;
-            const startY = this.dragStart.y + this.model.terrain.yOffset - this.view.canvasTop;
-            const endX = e.clientX + this.model.terrain.xOffset - this.view.boundingClientRectangle.left;
-            const endY = e.clientY + this.model.terrain.yOffset - this.view.boundingClientRectangle.top;
+            const startX = this.dragStart.x + this.model.terrain.offsetX - this.view.canvasLeft;
+            const startY = this.dragStart.y + this.model.terrain.offsetY - this.view.canvasTop;
+            const endX = e.clientX + this.model.terrain.offsetX - this.view.boundingClientRectangle.left;
+            const endY = e.clientY + this.model.terrain.offsetY - this.view.boundingClientRectangle.top;
             
             // Clear previous selection if shift is not pressed and we started dragging from empty space
             const clickedUnit = Array.from(this.model.units).find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
             if (!e.shiftKey && !clickedUnit) {
-                this.model.clearSelection();
+                this.clearSelection();
             }
         }
     }
 
     handleMouseUp(e) {
-        const x = e.clientX + this.model.terrain.xOffset - this.view.boundingClientRectangle.left;
-        const y = e.clientY + this.model.terrain.yOffset - this.view.boundingClientRectangle.top;
+        const x = e.clientX + this.model.terrain.offsetX - this.view.boundingClientRectangle.left;
+        const y = e.clientY + this.model.terrain.offsetY - this.view.boundingClientRectangle.top;
         
         // Handle right click to clear selection
         if (e.button === 2) {
-            this.model.clearSelection();
+            this.clearSelection();
             this.dragStart = null;
             this.isDragging = false;
             return;
@@ -166,19 +174,21 @@ class BattlefieldController {
      */
     scroll() {
         const { mousePosition, scrollSpeed, scrollMargin } = this;
-        const { canvasWidth, canvasHeight } = this.view;
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+        
         let x = 0;
         let y = 0;
-        
+
         if (mousePosition.x < scrollMargin) {
             x += scrollSpeed;
-        } else if (mousePosition.x > canvasWidth - scrollMargin) {
+        } else if (mousePosition.x > winW - scrollMargin) {
             x -= scrollSpeed;
         }
         
         if (mousePosition.y < scrollMargin) {
             y += scrollSpeed;
-        } else if (mousePosition.y > canvasHeight - scrollMargin) {
+        } else if (mousePosition.y > winH - scrollMargin) {
             y -= scrollSpeed;
         }
 

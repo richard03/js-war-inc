@@ -13,6 +13,7 @@ class BattlefieldView {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.boundingClientRectangle = this.canvas.getBoundingClientRect();
+
     }
 
     show() {
@@ -55,22 +56,19 @@ class BattlefieldView {
     drawTerrain(terrainData) {
         
         // Výpočet viditelné oblasti
-        const startX = Math.floor(terrainData.xOffset / terrainData.tileSize);
-        const startY = Math.floor(terrainData.yOffset / terrainData.tileSize);
-        const endX = Math.min(terrainData.mapWidth, startX + Math.ceil(this.canvas.width / terrainData.tileSize) + 1);
-        const endY = Math.min(terrainData.mapHeight, startY + Math.ceil(this.canvas.height / terrainData.tileSize) + 1);
+        const viewport = this.getViewportData(terrainData);
         
         // Výpočet offsetu pro plynulý posun
-        const offsetX = terrainData.xOffset % terrainData.tileSize;
-        const offsetY = terrainData.yOffset % terrainData.tileSize;
+        const offsetX = terrainData.offsetX % terrainData.tileSize;
+        const offsetY = terrainData.offsetY % terrainData.tileSize;
         
-        for (let y = startY; y < endY; y++) {
-            for (let x = startX; x < endX; x++) {
+        for (let y = viewport.startY; y < viewport.endY; y++) {
+            for (let x = viewport.startX; x < viewport.endX; x++) {
                 const height = terrainData.map[y][x];
                 
                 // Výpočet pozice dlaždice s ohledem na offset
-                const screenX = (x - startX) * terrainData.tileSize - offsetX;
-                const screenY = (y - startY) * terrainData.tileSize - offsetY;
+                const screenX = (x - viewport.startX) * terrainData.tileSize - offsetX;
+                const screenY = (y - viewport.startY) * terrainData.tileSize - offsetY;
 
                 if (this.game.debugMode) {
                     this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
@@ -102,6 +100,34 @@ class BattlefieldView {
                 }
             }
         }
+    }
+
+    getViewportSize() {
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight
+        }
+    }
+
+    getViewportData(terrainData) {
+        const startX = Math.floor(terrainData.offsetX / terrainData.tileSize);
+        const startY = Math.floor(terrainData.offsetY / terrainData.tileSize);
+        const endX = Math.min(terrainData.mapWidth, startX + Math.ceil(this.canvas.width / terrainData.tileSize) + 1);
+        const endY = Math.min(terrainData.mapHeight, startY + Math.ceil(this.canvas.height / terrainData.tileSize) + 1);
+
+        return {
+            startX: startX,
+            startY: startY,
+            endX: endX,
+            endY: endY,
+            width: endX - startX,
+            height: endY - startY
+        }
+
+        // return {
+        //     width: this.canvas.width,
+        //     height: this.canvas.height
+        // }
     }
 
     // Pomocná funkce pro získání barvy pro danou výšku
