@@ -3,6 +3,9 @@ class Game {
         this.debugMode = cfg.debugMode || true;
         
         this.model = {
+            accountBallance: 1000,
+            units: new Set(),
+            
             battlefield: new BattlefieldModel(this),
             market: new MarketModel(this),
             factory: new FactoryModel(this)

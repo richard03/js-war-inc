@@ -28,7 +28,14 @@ class MarketView {
             '#FFA500', // Orange
             '#800080', // Purple
             '#008000', // Dark Green
+            '#000080',  // Navy
+            '#800000', // Dark Red
+            '#008080', // Teal
+            '#808000', // Olive
+            '#800080', // Purple
+            '#008000', // Dark Green
             '#000080'  // Navy
+
         ];
 
         this.container = null;
@@ -216,20 +223,23 @@ class MarketView {
         ctx.fillStyle = '#fff';
         ctx.font = '12px Arial';
         
-        const padding = 50;
-        const graphHeight = this.graphCanvas.height - (padding * 2) - 60;
+        const paddingLeft = 50;
+        const paddingRight = 50;
+        const paddingTop = 20;
+        const paddingBottom = 150;
+        const graphHeight = this.graphCanvas.height - paddingTop - paddingBottom;
         for (let i = 0; i <= 9; i++) {
-            const y = padding + (graphHeight * (1 - i/9));
+            const y = paddingTop + graphHeight * (1 - i/9);
             const price = i * 1000;
             
             // Draw grid line
             ctx.beginPath();
-            ctx.moveTo(padding, y);
-            ctx.lineTo(this.graphCanvas.width - padding, y);
+            ctx.moveTo(paddingLeft, y);
+            ctx.lineTo(this.graphCanvas.width - paddingRight, y);
             ctx.stroke();
 
             // Draw price label
-            ctx.fillText(price.toLocaleString(), padding - 5, y + 4);
+            ctx.fillText(price.toLocaleString(), paddingLeft - 5, y + 4);
         }
         // Reset text alignment for future drawings
         ctx.textAlign = 'left';
@@ -241,9 +251,12 @@ class MarketView {
         const minPrice = 0;
         const maxPrice = 9000;
 
-        const padding = 50;
-        const graphWidth = this.graphCanvas.width - (padding * 2);
-        const graphHeight = this.graphCanvas.height - (padding * 2) - 60;
+        const paddingLeft = 50;
+        const paddingRight = 50;
+        const paddingTop = 20;
+        const paddingBottom = 150;
+        const graphWidth = this.graphCanvas.width - (paddingLeft + paddingRight);
+        const graphHeight = this.graphCanvas.height - paddingTop - paddingBottom;
         // Draw price lines for each corporation
         graphData.forEach((corp, index) => {
             const prices = corp.priceHistory;
@@ -254,8 +267,8 @@ class MarketView {
             ctx.beginPath();
 
             prices.forEach((price, i) => {
-                const x = padding + (graphWidth * (i / (prices.length - 1)));
-                const y = padding + (graphHeight * (1 - (price - minPrice) / (maxPrice - minPrice)));
+                const x = paddingLeft + (graphWidth * (i / (prices.length - 1)));
+                const y = paddingTop + (graphHeight * (1 - (price - minPrice) / (maxPrice - minPrice)));
                 
                 if (i === 0) {
                     ctx.moveTo(x, y);
@@ -275,11 +288,17 @@ class MarketView {
         // Draw grid lines and labels
         ctx.font = '12px Arial';
         const padding = 50;
-        const itemsPerRow = 3;
-        const legendItemWidth = 180;
+        const itemsPerRow = 2;
+        const legendItemWidth = 250;
         const legendItemHeight = 20;
         const legendStartX = padding;
-        const legendStartY = this.graphCanvas.height - 50;
+        
+        // Výpočet počtu řádků potřebných pro všechny položky
+        const rowsNeeded = Math.ceil(graphData.length / itemsPerRow);
+        // Výpočet celkové výšky legendy
+        const totalLegendHeight = rowsNeeded * legendItemHeight;
+        // Nastavení počáteční pozice Y tak, aby se vešla celá legenda
+        const legendStartY = this.graphCanvas.height - totalLegendHeight;
 
         graphData.forEach((corp, index) => {
             const row = Math.floor(index / itemsPerRow);
@@ -297,7 +316,6 @@ class MarketView {
             ctx.textAlign = 'left';
             ctx.fillText(corp.name, legendX + 15, legendY);
         });
-        
     }
 
     show() {

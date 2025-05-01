@@ -1,8 +1,6 @@
 class MarketModel {
     constructor(game) {
         this.game = game;
-        this.initialBalance = 1000000;
-        this.balance = this.initialBalance;
         this.currency = "KR";
         this.corporations = [
             { id: 'quantum', name: 'Quantum Dynamics', currentPrice: 1000, ownedShares: 0, totalShares: 100 },
@@ -14,9 +12,9 @@ class MarketModel {
             { id: 'virtual', name: 'VR Systems', currentPrice: 4000, ownedShares: 0, totalShares: 100 },
             { id: 'cybernet', name: 'Cybernetics Unlimited', currentPrice: 4500, ownedShares: 0, totalShares: 100 },
             { id: 'fusion', name: 'Fusion Energy Corp', currentPrice: 5000, ownedShares: 0, totalShares: 100 },
-            { id: 'terra', name: 'TerraForm Industries', currentPrice: 170, ownedShares: 0, totalShares: 100 },          
-            { id: 'holo', name: 'HoloTech', currentPrice: 190, ownedShares: 0, totalShares: 100 }/*,
-            { id: 'nano', name: 'Nano Solutions', currentPrice: 220, ownedShares: 0, totalShares: 1000 },
+            { id: 'terra', name: 'TerraForm Industries', currentPrice: 1700, ownedShares: 0, totalShares: 100 },          
+            { id: 'holo', name: 'HoloTech', currentPrice: 1900, ownedShares: 0, totalShares: 100 },
+            { id: 'nano', name: 'Nano Solutions', currentPrice: 2200, ownedShares: 0, totalShares: 100 }/*,
             { id: 'nanomed', name: 'NanoMed', currentPrice: 260, ownedShares: 0, totalShares: 1000 },
             { id: 'quantumai', name: 'Quantum AI Systems', currentPrice: 270, ownedShares: 0, totalShares: 1000 },
             { id: 'spacemin', name: 'Space Mining Corp', currentPrice: 290, ownedShares: 0, totalShares: 1000 },*/
@@ -88,11 +86,11 @@ class MarketModel {
         if (!corp) return false;
 
         const totalCost = corp.currentPrice * share;
-        if (totalCost > this.balance || (corp.ownedShares + share) > corp.totalShares) {
+        if (totalCost > this.game.model.accountBallance || (corp.ownedShares + share) > corp.totalShares) {
             return false;
         }
 
-        this.balance -= totalCost;
+        this.game.model.accountBallance -= totalCost;
         corp.ownedShares += share;
         return true;
     }
@@ -108,7 +106,7 @@ class MarketModel {
         if (!corp || corp.ownedShares < share) return false;
 
         const totalValue = corp.currentPrice * share;
-        this.balance += totalValue;
+        this.game.model.accountBallance += totalValue;
         corp.ownedShares -= share;
         return true;
     }
