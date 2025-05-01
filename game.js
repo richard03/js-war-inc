@@ -1,12 +1,8 @@
 class Game {
     constructor(cfg) {
+        this.debugMode = cfg.debugMode || true;
+        
         this.model = {
-            mousePosition: { x: 0, y: 0 },
-            isDragging: false,
-            dragStart: null,
-            dragEnd: null,
-            debugMode: cfg.debugMode || true,
-
             battlefield: new BattlefieldModel(this),
             market: new MarketModel(this),
             factory: new FactoryModel(this)
@@ -21,11 +17,13 @@ class Game {
 
         this.controller = {
             menu: new MenuController(this),
-            market: new MarketController(this)
+            market: new MarketController(this),
+            battlefield: new BattlefieldController(this)
         }
 
         this.controller.menu.init();
         this.controller.market.init();
+        this.controller.battlefield.init();
     }
 }
 
