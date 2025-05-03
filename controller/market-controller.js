@@ -1,8 +1,8 @@
 class MarketController {
-    constructor(game) {
+    constructor(game, model, view) {
         this.game = game;
-        this.model = game.model.market;
-        this.view = game.view.market;
+        this.model = model;
+        this.view = view;
 
         this.update = {
             interval: 5000,
@@ -70,7 +70,7 @@ class MarketController {
         }));
         const viewData = {
             accountBalance: {
-                amount: Math.round(this.model.balance),
+                amount: Math.round(this.game.model.accountBallance),
                 currency: this.model.currency
             },
             portfolio: this.model.corporations, 

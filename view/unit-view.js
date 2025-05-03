@@ -1,24 +1,35 @@
-if (typeof require == 'function') {
-    require('./game-position.js');
-}
-
 class UnitView {
-    constructor(unit, viewContext, cfg = {}) {
+
+    constructor(game, model) {
+        this.game = game;
+        this.model = model;
+
+        this.sprite = null;
+
+        this.healthBar = {
+            height: 4,
+            background: 'rgba(0, 0, 0, 0.5)',
+            colors: {
+                high: '#00ff00',
+                medium: '#ffff00',
+                low: '#ff0000'
+            }
+        }
+
+        this.selection = {
+            color: '#00ff00',
+            lineWidth: 3
+        }
+
+        /*
+        this.viewContext = game.view.battlefield.ctx;
+    // constructor(unit, viewContext, cfg = {}) {
         this.unit = unit;
-        this.viewContext = viewContext;
+        
         this.debugMode = unit.game.debugMode;
         this.originalColor = cfg.color || '#00ff00';
         this.currentColor = this.originalColor;
-        this.selectedColor = cfg.selectedColor || '#00ff00';
-        this.selectedLineWidth = cfg.selectedLineWidth || 3;
-        this.healthColors = cfg.healthColors || {
-            high: '#00ff00',
-            medium: '#ffff00',
-            low: '#ff0000'
-        };
         this.textColor = cfg.textColor || 'white';
-        this.healthBarBackground = cfg.healthBarBackground || 'rgba(0, 0, 0, 0.5)';
-        this.healthBarHeight = cfg.healthBarHeight || 4;
         
         // Flash effect properties
         this.flashActive = typeof cfg.flashActive == "undefined" ? false : cfg.flashActive;
@@ -33,9 +44,6 @@ class UnitView {
         this.muzzleFlashLength = cfg.muzzleFlashLength || 20;
         this.muzzleFlashAngle = cfg.muzzleFlashAngle || 0;
 
-        // Load vehicle sprite
-        this.vehicleSprite = new Image();
-        this.vehicleSprite.src = 'assets/sprites/vehicle.png';
 
         // Fire animation properties
         this.fireParticles = [];
@@ -44,54 +52,126 @@ class UnitView {
         this.maxSmokeParticles = 10;
         this.fireParticleLifetime = 10;
         this.smokeParticleLifetime = 20;
+        */
     }
 
-    draw() {
-        // Vykreslíme jednotku
-        this.drawUnitSprite();
+    init() {
+        // Load vehicle sprite
+        this.sprite = new Image();
+        this.sprite.src = 'assets/sprites/vehicle.png';        
+    }
+
+    getSpriteSize() {
+        return {
+            width: this.sprite.naturalWidth,
+            height: this.sprite.naturalHeight
+        }
+    }
+
+    
+    /**
+     * Draws the unit on the screen
+     * @param {Object} screenPosition - The position of the unit on the screen
+     * @param {Object} viewContext - The context we draw to
+     * @param {Object} cfg - The configuration of the unit
+     * @param {boolean} cfg.displayHealth - Whether to display the health bar
+     * @param {boolean} cfg.isSelected - Whether the unit is selected
+     */
+    drawUnit(screenPosition, viewContext, cfg = {}) {
         
+        this.drawUnitSprite(screenPosition, viewContext);
 
-        // Vykreslíme zdraví
-        this.drawHealth();
+        if (cfg.displayHealth) {
+            this.drawHealth(screenPosition, viewContext);
+        }
 
-        // Vykreslíme oheň
-        this.drawFire();
-        this.drawSmoke();
-
-        // Vykreslení výběru
-        this.drawSelection();
-
-        // Vykreslíme debug info
-        this.drawDebugInfo();
+        if (cfg.isSelected) {
+            this.drawSelection(screenPosition, viewContext);
+        }
     }
 
-    update() {
-        if (this.flashActive) {
-            this.flashTimer--;
-            if (this.flashTimer <= 0) {
-                this.flashActive = false;
+    drawUnitSprite(screenPosition, viewContext) {
+        viewContext.save(); // TODO: proč je tu tohle?
+
+        // Rotate based on vision angle + 90 degrees
+        // ctx.rotate(this.unit.vision.currentVisionVector.getAngle() + Math.PI/2);
+        
+        // Calculate dimensions while maintaining aspect ratio
+        const spriteSize = this.getSpriteSize();
+
+        let unitWidth = spriteSize.width;
+        let unitHeight = spriteSize.height;
+
+        // resize unit
+        if (this.model.size) {
+            // find aspect ratio
+            const aspectRatio = spriteSize.width / spriteSize.height;
+            if (unitWidth > unitHeight) {
+                unitWidth = this.model.size;
+                unitHeight = unitWidth / aspectRatio;
+            } else {
+                unitHeight = this.model.size;
+                unitWidth = unitHeight * aspectRatio;
             }
         }
+        
+        // Draw the sprite centered and scaled
+        viewContext.drawImage(
+            this.sprite,
+            // screenPosition.x - unitWidth/2, // Center horizontally
+            // screenPosition.y - unitHeight/2, // Center vertically
+            screenPosition.x - unitWidth/2, 
+            screenPosition.y - unitHeight/2,
+            unitWidth,
+            unitHeight
+        );
+        
+        viewContext.restore(); // TODO: proč je tu tohle?
+        
     }
 
-    drawSelection() {
-        const ctx = this.viewContext;
-        const terrain = this.unit.game.terrain;
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
-
-        if (this.unit.isSelected) {
-        ctx.beginPath();
-            ctx.arc(
-                screenX,
-                screenY, 
-                this.unit.size + 5, 0, 
-                Math.PI * 2
-            );
-            ctx.strokeStyle = this.selectedColor;
-            ctx.lineWidth = this.selectedLineWidth;
-            ctx.stroke();
+    drawHealth(screenPosition, viewContext) {      
+        const healthBarWidth = this.model.size;
+        const healthBarHeight = this.healthBar.height;
+        
+        const healthBarPosition = {
+            x: screenPosition.x - healthBarWidth/2,
+            y: screenPosition.y - this.model.size / 2 - this.healthBar.height - 4
         }
+
+        // Draw health bar background
+        viewContext.fillStyle = this.healthBar.background;
+        viewContext.fillRect(
+            healthBarPosition.x, 
+            healthBarPosition.y, 
+            healthBarWidth, 
+            healthBarHeight);
+        
+        // Draw health bar
+        // TODO: get rid of magic constants
+        const healthColor = this.model.health > 50 ? this.healthBar.colors.high : 
+                          this.model.health > 25 ? this.healthBar.colors.medium : 
+                          this.healthBar.colors.low;
+        viewContext.fillStyle = healthColor;
+        viewContext.fillRect(
+            healthBarPosition.x, 
+            healthBarPosition.y, 
+            healthBarWidth * (this.model.health / 100), 
+            healthBarHeight);
+        }
+
+    drawSelection(screenPosition, viewContext) {
+        viewContext.beginPath();
+        viewContext.arc(
+            screenPosition.x,
+            screenPosition.y, 
+            this.model.size / 2, 
+            0, 
+            Math.PI * 2
+        );
+        viewContext.strokeStyle = this.selection.color;
+        viewContext.lineWidth = this.selection.lineWidth;
+        viewContext.stroke();
     }
 
     drawMuzzleFlash(angle) {
@@ -137,86 +217,6 @@ class UnitView {
         ctx.textBaseline = 'middle';
         ctx.fillText('!', position.x, position.y);
         ctx.restore();
-    }
-
-    drawUnitSprite() {
-        const ctx = this.viewContext;
-        const terrain = this.unit.game.terrain;
-        const canvas = this.unit.game.view.canvas;
-        
-        // Výpočet pozice jednotky s ohledem na offset terénu
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
-        
-        // Kontrola, zda je jednotka viditelná
-        if (screenX < -this.unit.size || screenX > canvas.width + this.unit.size ||
-            screenY < -this.unit.size || screenY > canvas.height + this.unit.size) {
-            return; // Jednotka není viditelná
-        }
-
-        // Pokud je jednotka zničena, vykreslíme ji s nižší průhledností
-        if (this.unit.isDead) {
-            ctx.save();
-            ctx.globalAlpha = 0.5; // Zničené jednotky jsou průhlednější
-        }
-        
-        ctx.save(); // TODO: proč je tu tohle?
-        ctx.translate(screenX, screenY);
-
-        // Rotate based on vision angle + 90 degrees
-        ctx.rotate(this.unit.vision.currentVisionVector.getAngle() + Math.PI/2);
-        
-        // Calculate dimensions while maintaining aspect ratio
-        const spriteWidth = this.vehicleSprite.naturalWidth;
-        const spriteHeight = this.vehicleSprite.naturalHeight;
-        const aspectRatio = spriteWidth / spriteHeight;
-        
-        // Use height as base and calculate width to maintain aspect ratio
-        const displayHeight = this.unit.size * 2;
-        const displayWidth = displayHeight * aspectRatio;
-        
-        // Draw the sprite centered and scaled
-        ctx.drawImage(
-            this.vehicleSprite,
-            -displayWidth/2, // Center horizontally
-            -displayHeight/2, // Center vertically
-            displayWidth,
-            displayHeight
-        );
-        
-        ctx.restore(); // TODO: proč je tu tohle?
-        
-    }
-
-    drawHealth() {
-        // U zničených jednotek nevykreslujeme zdraví
-        if (this.unit.isDead) return;
-        
-        const ctx = this.viewContext;
-        const terrain = this.unit.game.terrain;
-        
-        // Výpočet pozice jednotky s ohledem na offset mapy
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
-        
-        const healthBarWidth = this.unit.size;
-        const healthBarHeight = this.healthBarHeight;
-        
-        const healthBarX = screenX - healthBarWidth/2;
-        const healthBarY = screenY - this.unit.size - 8;
-
-        
-        // Draw health bar background
-        ctx.fillStyle = this.healthBarBackground;
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-        
-        // Draw health bar
-        const healthColor = this.unit.health > 50 ? this.healthColors.high : 
-                          this.unit.health > 25 ? this.healthColors.medium : 
-                          this.healthColors.low;
-        ctx.fillStyle = healthColor;
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (this.unit.health / 100), healthBarHeight);
-         
     }
 
     drawFire() {
@@ -414,8 +414,8 @@ class UnitView {
         const unitPosition = GamePosition.getScreenPosition(
             this.unit.x,
             this.unit.y,
-            terrain.xOffset,
-            terrain.yOffset
+            terrain.offsetX,
+            terrain.offsetY
         );
 
         const visionRange = this.unit.vision.visionRange;
@@ -457,8 +457,8 @@ class UnitView {
         const viewContext = this.viewContext;
         const terrain = this.unit.game.terrain;
 
-        const screenX = this.unit.x - terrain.xOffset;
-        const screenY = this.unit.y - terrain.yOffset;
+        const screenX = this.unit.x - terrain.offsetX;
+        const screenY = this.unit.y - terrain.offsetY;
 
         // Vykreslíme pozadí pro lepší čitelnost
         this.viewContext.fillStyle = 'rgba(0, 0, 0, 0.5)';

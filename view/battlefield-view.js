@@ -1,17 +1,17 @@
 class BattlefieldView {
-    constructor(game) {
+    constructor(game, model) {
         this.game = game;
+        this.model = model;
 
         this.canvas = null;
-        this.ctx = null;
+        this.viewContext = null;
         this.boundingClientRectangle = null;
-
-        this.terrain = null;        
+       
     }
 
     init() {
         this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.viewContext = this.canvas.getContext('2d');
         this.boundingClientRectangle = this.canvas.getBoundingClientRect();
 
     }
@@ -25,7 +25,7 @@ class BattlefieldView {
     }
 
     clear() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.viewContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     resize() {
@@ -47,9 +47,9 @@ class BattlefieldView {
     }
 
     drawSelectBox(startX, startY, endX, endY) {
-        this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+        this.viewContext.strokeStyle = 'white';
+        this.viewContext.lineWidth = 2;
+        this.viewContext.strokeRect(startX, startY, endX - startX, endY - startY);
     }
 
 
@@ -71,9 +71,9 @@ class BattlefieldView {
                 const screenY = (y - viewport.startY) * terrainData.tileSize - offsetY;
 
                 if (this.game.debugMode) {
-                    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-                    this.ctx.lineWidth = 0.5;
-                    this.ctx.strokeRect(
+                    this.viewContext.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    this.viewContext.lineWidth = 0.5;
+                    this.viewContext.strokeRect(
                         screenX, 
                         screenY, 
                         terrainData.tileSize, 
@@ -82,8 +82,8 @@ class BattlefieldView {
                 
                 // Barva podle výšky
                 const color = this.getHeightColor(height);
-                this.ctx.fillStyle = color;
-                this.ctx.fillRect(
+                this.viewContext.fillStyle = color;
+                this.viewContext.fillRect(
                     screenX, 
                     screenY, 
                     terrainData.tileSize, 
@@ -91,15 +91,69 @@ class BattlefieldView {
                 
                 // Debug - zobrazení výšky
                 if (this.game.debugMode) {
-                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    this.ctx.font = '12px Arial';
-                    this.ctx.fillText(
+                    this.viewContext.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    this.viewContext.font = '12px Arial';
+                    this.viewContext.fillText(
                         height.toFixed(2), 
                         screenX + 2, 
                         screenY + 10);
                 }
             }
         }
+    }
+
+    /**
+     * Draws a unit on the battlefield
+     * @param {Object} unitData - The unit data
+     * @param {Object} unitData.model - The model of the unit
+     * @param {Object} unitData.view - The view of the unit
+     * @param {Object} unitData.mapPosition - The position of the unit on the map
+     * @param {boolean} unitData.isSelected - Whether the unit is selected
+     */
+    drawUnit(unitData) {
+        // Výpočet pozice jednotky s ohledem na offset terénu
+        const terrainData = this.model.terrain;
+        const screenPos = {
+            x: unitData.mapPosition.x - terrainData.offsetX,
+            y: unitData.mapPosition.y - terrainData.offsetY
+        }
+            
+        // // Kontrola, zda je jednotka viditelná
+        // const viewportSize = this.getViewportSize();
+        // if (screenPos.x < -unitData.model.size || screenPos.x > viewportSize.width + unitData.model.size ||
+        //     screenPos.y < -unitData.model.size || screenPos.y > viewportSize.height + unitData.model.size) {
+        //     return; // Jednotka není viditelná
+        // }
+
+        // Pokud je jednotka zničena, vykreslíme ji s nižší průhledností
+        if (unitData.model.isDead) {
+            this.viewContext.save();
+            this.viewContext.globalAlpha = 0.5; // Zničené jednotky jsou průhlednější
+        }
+
+        const cfg = {
+            displayHealth: unitData.model.health > 0, // display health only if unit is not dead
+            isSelected: unitData.isSelected || false
+        }
+        unitData.view.drawUnit(screenPos, this.viewContext, cfg);
+        
+        /*
+        // Vykreslíme jednotku
+        this.drawUnitSprite(unitData);
+        
+        // Vykreslíme ukazatel zdraví
+        this.drawHealth(unitData);
+
+        // Vykreslíme ukazatel výběru
+        this.drawSelection(unitData);
+
+        // Vykreslíme oheň a kouř poškozených a zničených jednotek
+        this.drawFire(unitData);
+        this.drawSmoke(unitData);
+
+        // Vykreslíme debug info
+        this.drawDebugInfo(unitData);
+        */
     }
 
     getViewportSize() {

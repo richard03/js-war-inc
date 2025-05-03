@@ -1,10 +1,8 @@
 class BattlefieldController {
-    constructor(game) {
+    constructor(game, model, view) {
         this.game = game;
-        this.model = game.model.battlefield;
-        this.view = game.view.battlefield;
-
-        this.units = null;
+        this.model = model;
+        this.view = view;
 
         this.mousePosition = { x: 0, y: 0 };
         this.isDragging = false;
@@ -17,15 +15,15 @@ class BattlefieldController {
 
     init() {
         this.model.init();
+
+        this.alliedUnits = new Set();
+        this.enemyUnits = new Set();
+
+        this.selectedUnits = new Set();
+
         this.view.init();
         this.resize();
         this.hide();
-
-        // this.units = new Set();
-        // TODO: init units
-
-        this.setupEventListeners();
-        requestAnimationFrame(() => this.gameLoop());
     }
 
     show() {
@@ -38,8 +36,71 @@ class BattlefieldController {
 
     resize() {
         this.view.resize();
-        const viewportSize = this.view.getViewportSize();
-        this.model.setViewport({width: viewportSize.width, height: viewportSize.height});
+    }
+
+    startBattle(selectedAlliedUnitsMVC) {
+
+        this.show();
+        this.resize();
+        
+        this.model.init();
+
+        this.placeAlliedUnits(selectedAlliedUnitsMVC);
+
+        this.createEnemyUnits();
+
+        this.setupEventListeners();
+        requestAnimationFrame(() => this.gameLoop());
+    }
+
+    placeAlliedUnits(selectedAlliedUnitsMVC) {
+
+        // add friendly units
+        const startPosition = {
+            x: Math.floor(Math.random() * 400),
+            y: Math.floor(Math.random() * 400)
+        };
+        const startAreaRadius = 400;
+        const visionDirection = { x: 1, y: 1 };
+
+        selectedAlliedUnitsMVC.forEach(unitMVC => {
+            const unitStartPosition = this.model.findWalkableTile(startPosition, startAreaRadius);
+            this.model.addUnitData({
+                model: unitMVC.model,
+                view: unitMVC.view,
+                controller: unitMVC.controller,
+                mapPosition: unitStartPosition,
+                isEnemy: false
+            });
+        });
+    }
+
+    createEnemyUnits() {
+        // add enemy units
+        const mapSize = this.model.getMapSize();
+        const startPosition = {
+            x: mapSize.width - Math.floor(Math.random() * 400),
+            y: mapSize.height - Math.floor(Math.random() * 400)
+        };
+        const startAreaRadius = 400;
+        const visionDirection = { x: -1, y: -1 };
+        
+        // setup enemy units for this battlefield
+        for (let i = 0; i < 3; i++) {
+            const unitStartPosition = this.model.findWalkableTile(startPosition, startAreaRadius);
+            const model = new UnitModel(this.game);
+            const view = new UnitView(this.game, model);
+            const controller = new UnitController(this.game, model, view);
+            controller.init();
+            
+            this.model.addUnitData({
+                model: model,
+                view: view,
+                controller: controller,
+                mapPosition: unitStartPosition,
+                isEnemy: true
+            });
+        }
     }
 
     setupEventListeners() {
@@ -71,6 +132,7 @@ class BattlefieldController {
             x: e.clientX + this.model.terrain.offsetX, 
             y: e.clientY + this.model.terrain.offsetY
         };
+        console.log('click');
     }
 
     handleMouseMove(e) {
@@ -94,16 +156,18 @@ class BattlefieldController {
             const endY = e.clientY + this.model.terrain.offsetY - this.view.boundingClientRectangle.top;
             
             // Clear previous selection if shift is not pressed and we started dragging from empty space
-            const clickedUnit = Array.from(this.model.units).find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
-            if (!e.shiftKey && !clickedUnit) {
-                this.clearSelection();
-            }
+            // const clickedUnit = Array.from(this.model.units).find(unit => unit.isPointInside(startX, startY) && !unit.isEnemy);
+            // if (!e.shiftKey && !clickedUnit) {
+            //     this.clearSelection();
+            // }
         }
     }
 
     handleMouseUp(e) {
-        const x = e.clientX + this.model.terrain.offsetX - this.view.boundingClientRectangle.left;
-        const y = e.clientY + this.model.terrain.offsetY - this.view.boundingClientRectangle.top;
+        const clickPosition = {
+            x: e.clientX + this.model.terrain.offsetX/* - this.view.boundingClientRectangle.left */, 
+            y: e.clientY + this.model.terrain.offsetY/* - this.view.boundingClientRectangle.top */
+        };
         
         // Handle right click to clear selection
         if (e.button === 2) {
@@ -131,14 +195,17 @@ class BattlefieldController {
             if (this.model.debugMode) console.log("Drag end");
             this.dragStart = null;
             this.isDragging = false;
-            return;
         }
 
         this.model.dragStart = null;
 
         // Click on unit
-        // for (const unit of this.model.units) {
-        //     if (unit.isPointInside(x, y) && !unit.isEnemy) {
+        for (const unitData of this.model.alliedUnits) {
+            
+            if (this.isUnitAt(unitData, clickPosition)) {
+                console.log('clicked on unit', unitData);
+                this.selectUnit(unitData);
+
         //         if (!e.shiftKey) {
         //             this.model.clearSelection();
         //             unit.select();
@@ -151,11 +218,13 @@ class BattlefieldController {
         //             }
         //         }
         //         if (this.model.debugMode) console.log("Selected a friendly unit");
-        //         return;
-        //     }
-        // }
+                return;
+            }
+        }
 
         // Click on map
+        console.log('clicked on map at', clickPosition);
+        
         // if (this.model.debugMode) console.log("Clicked on map");
         // if (this.model.currentFormation) {
         //     this.model.currentFormation.moveTo(x, y);
@@ -166,6 +235,44 @@ class BattlefieldController {
         //         unit.moveTo(x, y);
         //     });
         // }
+    }
+
+    selectUnit(unitData, retainSelection = false) {
+        console.log('selectUnit', unitData);
+        if (!retainSelection) {
+            this.clearSelection();
+        }
+        unitData.isSelected = true;
+        this.selectedUnits.add(unitData);
+    }
+
+    clearSelection() {
+        this.selectedUnits.forEach(unitData => {
+            unitData.isSelected = false;
+        });
+        this.selectedUnits.clear();
+    }
+
+    
+    /**
+     * Checks if the unit is at a given position
+     * @param {Object} position - The position to check
+     * @returns {boolean} True if the unit is at the position, false otherwise
+     */
+    isUnitAt(unitData, scrPosition) {
+        
+        const leftTop = {
+            x: unitData.mapPosition.x - unitData.model.size / 2,
+            y: unitData.mapPosition.y - unitData.model.size / 2
+        };
+
+        const rightBottom = {
+            x: unitData.mapPosition.x + unitData.model.size / 2,
+            y: unitData.mapPosition.y + unitData.model.size / 2
+        };
+        const result = scrPosition.x >= leftTop.x && scrPosition.x <= rightBottom.x &&
+               scrPosition.y >= leftTop.y && scrPosition.y <= rightBottom.y;
+        return result;
     }
 
     /**
@@ -192,21 +299,21 @@ class BattlefieldController {
             y -= scrollSpeed;
         }
 
-        this.model.shiftTerrain(x, y);
+        this.model.shiftMap(x, y);
     }
 
     gameLoop() {
         this.scroll();
         this.view.draw(this.model.terrain);
-        // for (const unit of this.model.units) {
-        //     unit.view.draw();
-        // }
-        requestAnimationFrame(() => this.gameLoop());
-    }
 
-    clearSelection() {
-        // this.model.selectedUnits.forEach(unit => unit.deselect());
-        // this.model.selectedUnits.clear();
-        //this.model.currentFormation = null;
+        // TODO: this gives allied units the advantage of a first action - should be mitigated somehow
+        // TODO: randomizing the fire delay may fix that
+        for (const unitData of this.model.alliedUnits) {
+            this.view.drawUnit(unitData);
+        }
+        for (const unitData of this.model.enemyUnits) {
+            this.view.drawUnit(unitData);
+        }
+        requestAnimationFrame(() => this.gameLoop());
     }
 } 

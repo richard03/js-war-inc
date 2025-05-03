@@ -1,16 +1,21 @@
 class BattlefieldModel {
-    constructor(game, cfg = {}) {
+    constructor(game) {
         this.game = game;
 
-        this.units = new Set();
+        /*
+         * unit data structure: {
+         *     model: UnitModel,
+         *     view: UnitView,
+         *     controller: UnitController,
+         *     mapPosition: { x: number, y: number },
+         *     isEnemy: boolean
+         * }
+         */
+        this.alliedUnits = new Set(); // players units on this battlefield - controllers and situational data
+        this.enemyUnits = new Set(); // units on this battlefield - controllers and situational data
         this.selectedUnits = new Set();
         // this.formations = new Set();
         // this.currentFormation = null;
-
-        this.viewport = {
-            width: 0,
-            height: 0
-        }
 
         this.terrain = {
             map: [],
@@ -30,39 +35,37 @@ class BattlefieldModel {
 
     init() {
         this.generateTerrainMap();
-        // this.initUnits();
     }
-
-    // initUnits() {
-    //     // TODO: init units
-    // }
-
-    // addUnit(unitCfg) {
-    //     const unit = new UnitModel({
-    //         x: unitCfg.x,
-    //         y: unitCfg.y,
-    //         isEnemy: unitCfg.isEnemy
-    //     });
-    //     this.units.add(unit);
-    // }
 
     /**
-     * Sets the viewport
-     * @param {Object} viewport - The viewport
-     * @param {number} viewport.width - The width of the viewport
-     * @param {number} viewport.height - The height of the viewport
+     * Adds a unit to the battlefield
+     * @param {Object} unitData - The unit data
      */
-    setViewport(viewport) {
-        this.viewport = {
-            width: viewport.width,
-            height: viewport.height
-        };
+    addUnitData(unitData) {
+        const battlefieldUnitData = {
+            model: unitData.model,
+            view: unitData.view,
+            controller: unitData.controller,
+            mapPosition: {
+                x: unitData.mapPosition.x || 0,
+                y: unitData.mapPosition.y || 0
+            },
+            isEnemy: unitData.isEnemy || true,
+            isDead: false
+        }
+        if (!unitData.isEnemy) {
+            this.alliedUnits.add(battlefieldUnitData);
+        } else {
+            this.enemyUnits.add(battlefieldUnitData);
+        }
     }
 
-    isTileWalkable(x, y) {
-        const tileX = Math.floor(x / this.terrain.tileSize);
-        const tileY = Math.floor(y / this.terrain.tileSize);
-        return this.terrain.map[tileY][tileX] > this.terrain.waterLevel;
+    isTileWalkable(position) {
+        const tileX = Math.floor(position.x / this.terrain.tileSize);
+        const tileY = Math.floor(position.y / this.terrain.tileSize);
+        if (this.terrain.map[tileY] == undefined || this.terrain.map[tileY][tileX] == undefined) return false; // out of map
+        if (this.terrain.map[tileY][tileX] <= this.terrain.waterLevel) return false; // water is not walkable
+        return true;
     }
 
     /**
@@ -73,18 +76,21 @@ class BattlefieldModel {
      * @param {number} maxAttempts - The maximum number of attempts to find a walkable tile
      * @returns {Object} The coordinates of the walkable tile or null if no walkable tile is found
      */
-    findWalkableTile(startX, startY, areaRadius, maxAttempts = 100) {
+    findWalkableTile(startPosition, areaRadius, maxAttempts = 100) {
         for (let i = 0; i < maxAttempts; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.random() * areaRadius;
-            const x = startX + Math.cos(angle) * distance;
-            const y = startY + Math.sin(angle) * distance;
+            const resultPosition = {
+                x: Math.floor(startPosition.x + Math.cos(angle) * distance),
+                y: Math.floor(startPosition.y + Math.sin(angle) * distance)
+            }
             
-            if (this.isTileWalkable(x, y)) {
-                return { x, y };
+            if (this.isTileWalkable(resultPosition)) {
+                return resultPosition;
             }
         }
-        return null;
+        console.log('No walkable tile found', startPosition, areaRadius);
+        throw new Error('No walkable tile found', startPosition, areaRadius);
     }
 
     /**
@@ -92,16 +98,16 @@ class BattlefieldModel {
      * @param {number} x - The amount to shift the terrain by on the x axis
      * @param {number} y - The amount to shift the terrain by on the y axis
      */
-    shiftTerrain(x, y) {
-        const newOffsetX = this.terrain.offsetX - x;
-        const newOffsetY = this.terrain.offsetY - y;
-        const mapWidth = this.terrain.mapWidth * this.terrain.tileSize;
-        const mapHeight = this.terrain.mapHeight * this.terrain.tileSize;
-        if ( (newOffsetX > 0) && (newOffsetX + this.viewport.width < mapWidth) ) {
-            this.terrain.offsetX -= x;
+    shiftMap(dx, dy) {
+        const newOffsetX = this.terrain.offsetX - dx;
+        const newOffsetY = this.terrain.offsetY - dy;
+        const mapSize = this.getMapSize();
+        const viewportSize = this.getViewportSize();
+        if ( (newOffsetX > 0) && (newOffsetX + viewportSize.width < mapSize.width) ) {
+            this.terrain.offsetX -= dx;
         }
-        if ( (newOffsetY > 0) && (newOffsetY + this.viewport.height < mapHeight) ) {
-            this.terrain.offsetY -= y;
+        if ( (newOffsetY > 0) && (newOffsetY + viewportSize.height < mapSize.height) ) {
+            this.terrain.offsetY -= dy;
         }
     }
 
@@ -110,7 +116,6 @@ class BattlefieldModel {
      */
     generateTerrainMap() {
         this.terrain.map = new Array(this.terrain.mapHeight);
-        
         
         for (let y = 0; y < this.terrain.mapHeight; y++) {
             this.terrain.map[y] = new Array(this.terrain.mapWidth);
@@ -175,6 +180,28 @@ class BattlefieldModel {
                 this.terrain.map[y][x] = 0.2 + noiseHeight * Math.pow(heightFactor, 2);
             }
         }
+    }
+
+    /**
+     * Returns the size of the map in pixels
+     * @returns {Object} The size of the map
+     */
+    getMapSize() {
+        return {
+            width: this.terrain.mapWidth * this.terrain.tileSize,
+            height: this.terrain.mapHeight * this.terrain.tileSize
+        };
+    }
+
+    /**
+     * Returns the size of the viewport in pixels
+     * @returns {Object} The size of the viewport
+     */
+    getViewportSize() {
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
     }
     
     /**

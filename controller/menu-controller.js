@@ -1,7 +1,7 @@
 class MenuController {
-    constructor(game) {
+    constructor(game, view) {
         this.game = game;
-        this.view = game.view.menu;
+        this.view = view;
 
         this.buttons = [
             { text: 'Finance', id: 'finance' },
@@ -13,6 +13,7 @@ class MenuController {
     
     init() {
         this.view.init();
+        this.hide();
 
         // Create buttons
         this.buttons.forEach(button => {
@@ -45,7 +46,8 @@ class MenuController {
             case 'action':
                 // Hide menu and show game
                 this.hide();
-                this.game.view.battlefield.show();
+                this.game.controller.battlefield.startBattle(this.game.unitsMVC);
+                this.game.controller.battlefield.show();
                 break;
             case 'finance':
                 // Hide menu and show market

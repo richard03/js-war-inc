@@ -1,6 +1,7 @@
 class FactoryView {
-    constructor(game) {
+    constructor(game, model) {
         this.game = game;
+        this.model = model;
     }
 }
 

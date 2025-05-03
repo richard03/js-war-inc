@@ -1,6 +1,7 @@
 class MarketView {
-    constructor(game) {
+    constructor(game, model) {
         this.game = game;
+        this.model = model;
         
         this.texts = {
             backButton: 'Zpět',
