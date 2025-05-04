@@ -41,16 +41,16 @@ class BattlefieldModel {
      * Adds a unit to the battlefield
      * @param {Object} unitData - The unit data
      */
-    addUnitData(unitData) {
+    addUnitData(unitData = { model: null, view: null, controller: null, mapPosition: { x: 0, y: 0 }, isEnemy: false, isDead: true }) {
         const battlefieldUnitData = {
             model: unitData.model,
             view: unitData.view,
             controller: unitData.controller,
             mapPosition: {
-                x: unitData.mapPosition.x || 0,
-                y: unitData.mapPosition.y || 0
+                x: unitData.mapPosition.x,
+                y: unitData.mapPosition.y
             },
-            isEnemy: unitData.isEnemy || true,
+            isEnemy: unitData.isEnemy,
             isDead: false
         }
         if (!unitData.isEnemy) {
@@ -58,6 +58,76 @@ class BattlefieldModel {
         } else {
             this.enemyUnits.add(battlefieldUnitData);
         }
+    }
+
+    /**
+     * Starts moving a unit to a target position
+     * @param {Object} unitData - The unit data
+     * @param {Object} unitData.position - The position of the unit
+     * @param {Object} targetPosition - The target position
+     */
+    startMovingUnitTo(unitData, targetPosition) {
+        unitData.targetPosition = targetPosition;
+    }
+
+    stopMovingUnit(unitData) {
+        unitData.targetPosition = null;
+    }
+
+    updateUnitPosition(unitData) {
+        const lastPosition = {
+            x: unitData.mapPosition.x,
+            y: unitData.mapPosition.y
+        }
+
+        const movementVector = new Vector2(unitData.model.speed.current, 0);
+        movementVector.rotate(unitData.model.vision.currentAngle);
+        unitData.mapPosition.x += movementVector.x;
+        unitData.mapPosition.y += movementVector.y;
+        
+        // if unit is at the target position, stop moving
+        if (unitData.targetPosition) {
+            const lastTargetVector = new Vector2(
+                unitData.targetPosition.x - lastPosition.x, 
+                unitData.targetPosition.y - lastPosition.y
+            );
+            const currentTargetVector = new Vector2(
+                unitData.targetPosition.x - unitData.mapPosition.x, 
+                unitData.targetPosition.y - unitData.mapPosition.y
+            );
+            const lastDistance = lastTargetVector.length;
+            const currentDistance = currentTargetVector.length;
+            if (currentDistance <= lastDistance) {
+                // going towards the target
+                if (currentDistance > unitData.model.getBrakingDistance()) {
+                    console.log('going towards the target');
+                    unitData.model.accelerate();
+                    return;
+                }
+            }
+        }
+        unitData.model.decelerate();
+    }
+
+    /**
+     * Starts turning a unit to a target position
+     * @param {Object} unitData - The unit data
+     * @param {Object} unitData.position - The position of the unit
+     * @param {Object} targetPosition - The target position
+     */
+    startTurningUnitTo(unitData, targetPosition) {
+        const targetVector = new Vector2(
+            targetPosition.x - unitData.mapPosition.x, 
+            targetPosition.y - unitData.mapPosition.y
+        );
+        const targetAngle = targetVector.getAngle();
+        unitData.model.startTurningTo(targetAngle);
+    }
+
+    turnUnitTo(unitData, targetPosition) {
+        const targetVector = new Vector2(targetPosition.x - unitData.position.x, targetPosition.y - unitData.position.y);
+        const targetAngle = targetVector.getAngle();
+        unitData.model.turnTo(targetAngle);
     }
 
     isTileWalkable(position) {

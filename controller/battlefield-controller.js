@@ -11,6 +11,7 @@ class BattlefieldController {
         this.scrollSpeed = 10;
         this.scrollMargin = 50;
 
+
     }
 
     init() {
@@ -92,7 +93,6 @@ class BattlefieldController {
             const view = new UnitView(this.game, model);
             const controller = new UnitController(this.game, model, view);
             controller.init();
-            
             this.model.addUnitData({
                 model: model,
                 view: view,
@@ -229,12 +229,11 @@ class BattlefieldController {
         // if (this.model.currentFormation) {
         //     this.model.currentFormation.moveTo(x, y);
         // } else {
-        //     this.model.selectedUnits.forEach((unit) => {
-        //         if (this.model.debugMode) console.log("Moving unit to [" + x + " : " + y + "]");
-        //         unit.vision.startTurningTo(x, y);
-        //         unit.moveTo(x, y);
-        //     });
-        // }
+        this.model.selectedUnits.forEach((unitData) => {
+            console.log('turning unit to', clickPosition);
+            this.model.startTurningUnitTo(unitData, clickPosition);
+            this.model.startMovingUnitTo(unitData, clickPosition);
+        });
     }
 
     selectUnit(unitData, retainSelection = false) {
@@ -243,14 +242,14 @@ class BattlefieldController {
             this.clearSelection();
         }
         unitData.isSelected = true;
-        this.selectedUnits.add(unitData);
+        this.model.selectedUnits.add(unitData);
     }
 
     clearSelection() {
-        this.selectedUnits.forEach(unitData => {
+        this.model.selectedUnits.forEach(unitData => {
             unitData.isSelected = false;
         });
-        this.selectedUnits.clear();
+        this.model.selectedUnits.clear();
     }
 
     
@@ -309,11 +308,70 @@ class BattlefieldController {
         // TODO: this gives allied units the advantage of a first action - should be mitigated somehow
         // TODO: randomizing the fire delay may fix that
         for (const unitData of this.model.alliedUnits) {
+            unitData.model.update();
+            this.model.updateUnitPosition(unitData);
             this.view.drawUnit(unitData);
         }
         for (const unitData of this.model.enemyUnits) {
+            unitData.model.update();
+            this.model.updateUnitPosition(unitData);
             this.view.drawUnit(unitData);
         }
         requestAnimationFrame(() => this.gameLoop());
     }
-} 
+
+
+    
+
+    // /**
+    //  * Najde nejbližšího nepřítele
+    //  * @returns {Unit} Nejblíže se nacházející nepřítel
+    //  */
+    // findNearestEnemy() {
+    //     let nearestEnemy = null;
+    //     let minDistance = this.visionRange;
+    //     for (const unit of this.unit.game.units) {
+    //         if (unit.isEnemy !== this.unit.isEnemy) {
+    //             const targetVector = new Vector2(unit.x - this.unit.x, unit.y - this.unit.y);
+    //             const distance = targetVector.length;
+    //             if (distance < minDistance) {
+    //                 minDistance = distance;
+    //                 nearestEnemy = unit;
+    //             }
+    //         }
+    //     }
+    //     return nearestEnemy;
+    // }
+
+    // isInVisionCone(x, y) {
+    //     // Vypočítáme směr k bodu
+    //     const targetVector = new Vector2(x - this.unit.x, y - this.unit.y);
+        
+    //     // Pokud je bod příliš daleko, není v zorném poli
+    //     if (targetVector.length > this.visionRange) {
+    //         return false;
+    //     }
+        
+    //     // Vypočítáme rozdíl úhlů
+    //     let angleDiff = targetVector.getAngle() - this.currentVisionVector.getAngle();
+        
+    //     // Normalizujeme úhel do rozsahu -PI až PI
+    //     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+    //     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        
+    //     // Kontrolujeme, zda je bod v zorném poli
+    //     return Math.abs(angleDiff) <= this.visionConeAngle / 2;
+    // }
+
+    // // Kontroluje, zda je v zorném poli nějaká jednotka
+    // checkUnitsInVisionCone() {
+    //     this.unit.seesObstacle = false;
+    //     for (const unit of this.unit.game.units) {
+    //         if (this.isInVisionCone(unit.x, unit.y)) {
+    //             this.unit.seesObstacle = true;
+    //             break;
+    //         }
+    //     }
+    // }
+    
+}
