@@ -67,6 +67,7 @@ class BattlefieldModel {
      * @param {Object} targetPosition - The target position
      */
     startMovingUnitTo(unitData, targetPosition) {
+        console.log('startMovingUnitTo', unitData, targetPosition);
         unitData.targetPosition = targetPosition;
     }
 
@@ -74,11 +75,39 @@ class BattlefieldModel {
         unitData.targetPosition = null;
     }
 
-    updateUnitPosition(unitData) {
-        const lastPosition = {
-            x: unitData.mapPosition.x,
-            y: unitData.mapPosition.y
+    updateUnitMovement(unitData) {
+        // if target is not set
+        if (typeof unitData.targetPosition === 'undefined' || unitData.targetPosition == null) {
+            unitData.model.decelerate();
+            return;
         }
+
+        const angleToTarget = new Vector2(unitData.targetPosition.x - unitData.mapPosition.x, unitData.targetPosition.y - unitData.mapPosition.y).getAngle();
+        const headingAngle = unitData.model.vision.currentAngle;
+        const angleDifference = Math.abs(angleToTarget - headingAngle);
+        const isHeadingToTarget = FuzzyMath.isClose(angleDifference, 0, Math.PI / 2);
+  
+        const newPosition = {
+            x: unitData.mapPosition.x + unitData.model.speed.current * Math.cos(unitData.model.vision.currentAngle),
+            y: unitData.mapPosition.y + unitData.model.speed.current * Math.sin(unitData.model.vision.currentAngle)
+        }
+        const newPositionToTargetDistance = new Vector2(unitData.targetPosition.x - newPosition.x, unitData.targetPosition.y - newPosition.y).length;
+        
+        const isCloseToTarget = newPositionToTargetDistance <= unitData.model.getBrakingDistance();
+        const isAtTarget = FuzzyMath.isClose(newPositionToTargetDistance, 0);
+
+        if (isHeadingToTarget && !isAtTarget) {
+            unitData.model.accelerate();
+        } else {
+            unitData.model.decelerate();
+        }
+        if (isAtTarget && unitData.model.speed.current == 0) {
+            unitData.model.stopMoving();
+            this.stopMovingUnit(unitData);
+        }
+        unitData.mapPosition = newPosition;
+
+        /*
 
         const movementVector = new Vector2(unitData.model.speed.current, 0);
         movementVector.rotate(unitData.model.vision.currentAngle);
@@ -107,6 +136,7 @@ class BattlefieldModel {
             }
         }
         unitData.model.decelerate();
+        */
     }
 
     /**

@@ -309,12 +309,12 @@ class BattlefieldController {
         // TODO: randomizing the fire delay may fix that
         for (const unitData of this.model.alliedUnits) {
             unitData.model.update();
-            this.model.updateUnitPosition(unitData);
+            this.model.updateUnitMovement(unitData);
             this.view.drawUnit(unitData);
         }
         for (const unitData of this.model.enemyUnits) {
             unitData.model.update();
-            this.model.updateUnitPosition(unitData);
+            this.model.updateUnitMovement(unitData);
             this.view.drawUnit(unitData);
         }
         requestAnimationFrame(() => this.gameLoop());

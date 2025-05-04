@@ -7,7 +7,7 @@ class UnitModel {
             current: 0,
             target: 0,
             acceleration: 0.1,
-            deceleration: 1
+            deceleration: 0.5
         }
 
         this.health = 100;
@@ -34,7 +34,7 @@ class UnitModel {
     updateVision() {
         if (this.vision.targetAngle && this.vision.targetAngle !== this.vision.currentAngle) {
             // Normalizujeme úhly do rozsahu -PI až PI
-            let angleDiff = this.vision.targetAngle - this.vision.currentAngle;
+            let angleDiff = GeometryMath.normalizeAngle(this.vision.targetAngle - this.vision.currentAngle);
 
             if (FuzzyMath.isClose(angleDiff, 0, this.vision.rotationSpeed)) {
                 this.vision.currentAngle = this.vision.targetAngle;
@@ -42,14 +42,21 @@ class UnitModel {
                 return;
             }
 
-            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+            // // normalize the angle
+            // while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            // while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 
             // Otáčíme vždy nejkratší cestou
             if (angleDiff > 0) {
-                this.vision.currentAngle = this.vision.currentAngle + this.vision.rotationSpeed;
+                this.vision.currentAngle = GeometryMath.normalizeAngle(this.vision.currentAngle + this.vision.rotationSpeed);
+                // if (this.vision.currentAngle > Math.PI) { // normalize the angle
+                //     this.vision.currentAngle = - this.vision.currentAngle + Math.PI;
+                // }
             } else {
-                this.vision.currentAngle = this.vision.currentAngle - this.vision.rotationSpeed;
+                this.vision.currentAngle = GeometryMath.normalizeAngle(this.vision.currentAngle - this.vision.rotationSpeed);
+                // if (this.vision.currentAngle < - Math.PI) { // normalize the angle
+                //     this.vision.currentAngle = this.vision.currentAngle - Math.PI;
+                // }
             }
         }
     }

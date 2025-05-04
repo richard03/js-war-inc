@@ -32,6 +32,16 @@ describe('FuzzyMath', () => {
             expect(FuzzyMath.isClose(-5, -5.005)).toBe(true);
             expect(FuzzyMath.isClose(-5, -5.02)).toBe(false);
         });
+
+        test('should handle simple arrays', () => {
+            expect(FuzzyMath.isClose([1, 2.005, 3], [1, 2, 3.01], 0.1)).toBe(true);
+            expect(FuzzyMath.isClose([1, 2, 3], [1, 2, 4], 0.1)).toBe(false);
+        });
+
+        test('should handle simple objects', () => {
+            expect(FuzzyMath.isClose({ x: 1, y: 2, z: 3.02 }, { x: 1.01, y: 2, z: 3 }, 0.1)).toBe(true);
+            expect(FuzzyMath.isClose({ x: 1, y: 2, z: 3 }, { x: 1, y: 2, z: 5 }, 0.1)).toBe(false);
+        });
     });
 
     describe('isInRange', () => {
@@ -59,19 +69,45 @@ describe('FuzzyMath', () => {
 
     describe('addRandomFactor', () => {
         test('should add random factor to value', () => {
-            const value = 10;
+            const value = 40;
             const factor = 0.1;
-            const result = FuzzyMath.addRandomFactor(value, factor);
-            expect(result).toBeGreaterThan(value - value * factor);
-            expect(result).toBeLessThan(value + value * factor);
+            let min = value;
+            let max = value;
+            // run 1000 times
+            for (let i = 0; i < 1000; i++) {
+                const result = FuzzyMath.addRandomFactor(value, factor);
+                if (result < min) {
+                    min = result;
+                }
+                if (result > max) {
+                    max = result;
+                }
+            }
+            expect(min).toBeGreaterThan(36);
+            expect(max).toBeLessThan(44);
+            // is it random?
+            expect(max - min).toBeGreaterThan(0);
         });
 
         test('should handle negative values', () => {
             const value = -10;
             const factor = 0.1;
-            const result = FuzzyMath.addRandomFactor(value, factor);
-            expect(result).toBeGreaterThan(value + value * factor);
-            expect(result).toBeLessThan(value - value * factor);
+            let min = value;
+            let max = value;
+            // run 1000 times
+            for (let i = 0; i < 1000; i++) {
+                const result = FuzzyMath.addRandomFactor(value, factor);
+                if (result < min) {
+                    min = result;
+                }
+                if (result > max) {
+                    max = result;
+                }
+            }
+            expect(min).toBeGreaterThan(-11);
+            expect(max).toBeLessThan(-9);
+            // is it random?
+            expect(max - min).toBeGreaterThan(0);
         });
 
         test('should handle zero value', () => {
@@ -88,17 +124,25 @@ describe('FuzzyMath', () => {
             expect(result).toBe(value);
         });
 
-        test('should handle negative factor', () => {
-            const value = 10;
-            const factor = -0.1;
-            const result = FuzzyMath.addRandomFactor(value, factor);
-            expect(result).toBeLessThan(value);
-        });
-
         test('should handle large factor', () => {
             const value = 10;
             const factor = 10;
-            const result = FuzzyMath.addRandomFactor(value, factor);
+            let min = value;
+            let max = value;
+            // run 1000 times
+            for (let i = 0; i < 1000; i++) {
+                const result = FuzzyMath.addRandomFactor(value, factor);
+                if (result < min) {
+                    min = result;
+                }
+                if (result > max) {
+                    max = result;
+                }
+            }
+            expect(min).toBeGreaterThan(-90);
+            expect(max).toBeLessThan(110);
+            // is it random?
+            expect(max - min).toBeGreaterThan(0);
         });
     });
 }); 

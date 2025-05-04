@@ -9,7 +9,24 @@ class FuzzyMath {
      * @returns {boolean} True, pokud jsou hodnoty blízko sebe, jinak false
      */
     static isClose(value1, value2, tolerance = FuzzyMath.defaultTolerance) {
-        return Math.abs(value1 - value2) <= tolerance;
+        // if value is scalar
+        if (typeof value1 === 'number' && typeof value2 === 'number') {
+            return Math.abs(value1 - value2) <= tolerance;
+        }
+        // if value is a simple array
+        if (Array.isArray(value1) && Array.isArray(value2)) {
+            return value1.every((v, i) => FuzzyMath.isClose(v, value2[i], tolerance));
+        }
+        // if value has components like x, y, z, etc.
+        if (typeof value1 === 'object' && typeof value2 === 'object') {
+            for (const key in value1) {
+                if (!FuzzyMath.isClose(value1[key], value2[key], tolerance)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -31,7 +48,7 @@ class FuzzyMath {
      * @returns {number} Nová hodnota
      */
     static addRandomFactor(value, factor = 0.1) {
-        return value + (Math.random() - 0.5) * value * factor;
+        return value + (Math.random() - 0.5) * 2 * value * factor;
     }
 }
 

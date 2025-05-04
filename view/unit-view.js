@@ -365,7 +365,7 @@ class UnitView {
         this.drawDebugVision(screenPosition, viewContext);
         // this.drawDebugSpeed(screenPosition);
 
-        // this.drawDebugTexts(screenPosition);
+        this.drawDebugTexts(screenPosition, viewContext);
 /*
         if (this.unit.hasVisibleEnemies) {
             this.drawExclamationMark();
@@ -380,7 +380,9 @@ class UnitView {
         // U zničených jednotek nevykreslujeme zrakové pole
         if (this.model.isDead) return;
 
-        const visionRange = this.model.vision.visionRange;
+        viewContext.save();
+
+        const visionRange = this.model.vision.range;
         const visionAngle = this.model.vision.currentAngle;
         const visionConeAngle = this.model.vision.coneAngle;
 
@@ -398,12 +400,12 @@ class UnitView {
         );
 
         // draw vision vector
-        const visionVector = new Vector2(this.model.vision.range, 0);
-        visionVector.rotate(this.model.vision.currentAngle);
+        const visionVector = new Vector2(this.model.vision.range, 0).rotate(this.model.vision.currentAngle);
         const visionEndPosition = {
             x: startPosition.x + visionVector.x,
             y: startPosition.y + visionVector.y
         }
+
         this.drawDebugArrow(
             startPosition, 
             visionEndPosition,
@@ -412,8 +414,7 @@ class UnitView {
         );
 
         // draw vision target vector
-        const visionTargetVector = new Vector2(this.model.vision.range, 0);
-        visionTargetVector.rotate(this.model.vision.targetAngle);
+        const visionTargetVector = new Vector2(this.model.vision.range, 0).rotate(this.model.vision.targetAngle);
         const visionTargetEndPosition = {
             x: startPosition.x + visionTargetVector.x,
             y: startPosition.y + visionTargetVector.y
@@ -424,9 +425,12 @@ class UnitView {
             viewContext,
             { color: 'rgba(255, 0, 255, 0.3)' }
         );
+
+        viewContext.restore();
     }
 
     drawDebugArrow(startPosition, endPosition, viewContext, cfg = { color: 'rgba(0, 0, 255, 0.3)', lineWidth: 2, size: 10 }) {
+        
         viewContext.save();
 
         // draw line
@@ -458,7 +462,6 @@ class UnitView {
     drawDebugVisionCone(startPosition, diameter, startAngle, endAngle, viewContext, cfg = { color: 'rgba(255, 255, 0, 0.1)' }) {
         // Vykreslíme zrakové pole pouze v debug módu
         viewContext.save();
-
         viewContext.beginPath();
         viewContext.moveTo(startPosition.x, startPosition.y);
 
@@ -475,59 +478,38 @@ class UnitView {
         viewContext.restore();   
     }
 
-    drawDebugTexts() {
-        // Vykreslíme texty pro debug
-        if (!this.debugMode) return;
-       
-        const viewContext = this.viewContext;
-        const terrain = this.unit.game.terrain;
-
-        const screenX = this.unit.x - terrain.offsetX;
-        const screenY = this.unit.y - terrain.offsetY;
+    drawDebugTexts(screenPosition, viewContext, cfg = { textColor: 'white', bgColor: 'rgba(0, 0, 0, 0.5)' }) {
+        viewContext.save(); // save state before any transformations
 
         // Vykreslíme pozadí pro lepší čitelnost
-        this.viewContext.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        this.viewContext.fillRect(
-            screenX - 50,
-            screenY - this.unit.size - 40,
+        viewContext.fillStyle = cfg.bgColor;
+        viewContext.fillRect(
+            screenPosition.x - 50,
+            screenPosition.y - this.model.size - 40,
             100,
             30
         );
-
-        // Získáme výšku terénu pod jednotkou
-        const tileX = Math.floor(this.unit.x / this.unit.game.terrain.tileSize);
-        const tileY = Math.floor(this.unit.y / this.unit.game.terrain.tileSize);
-        const terrainHeight = this.unit.game.terrain.terrainMap[tileY][tileX];
-
-        // Draw health text
-        viewContext.fillStyle = this.textColor;
+        viewContext.fillStyle = cfg.textColor;
         viewContext.font = '10px Arial';
         viewContext.textAlign = 'center';
+
+        let text = 'v-angle: ' + this.model.vision.currentAngle.toFixed(2);
         viewContext.fillText(
-            `${Math.round(this.unit.health)}% ${this.unit.combat.shotCooldown.toFixed(2)}`, 
-            screenX, 
-            screenY - this.unit.size - 30
+            `${text}`, 
+            screenPosition.x, 
+            screenPosition.y - this.model.size - 30
         );
-        viewContext.restore();
-
         // Draw position text
-        let text = '';
-        text += `${this.unit.x.toFixed(2)}`;
-        text += `, ${this.unit.y.toFixed(2)}`;
-        text += `, ${terrainHeight.toFixed(2)}`;
-
-        
-        // let textWidth = this.viewContext.measureText(text).width;
-            
-        
+        text = 'speed: ' + this.model.speed.current.toFixed(2);
         viewContext.fillText(
             text,
-            screenX,
-            screenY - this.unit.size - 15
+            screenPosition.x,
+            screenPosition.y - this.model.size - 15
         );
+
        
         // Vykreslíme výšku nad jednotkou
-        this.viewContext.save();
+        viewContext.restore();
     }
 
 
