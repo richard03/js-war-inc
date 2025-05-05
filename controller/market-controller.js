@@ -11,6 +11,8 @@ class MarketController {
     }
 
     init() {
+        if (this.game.debugMode) console.log('init market controller');
+
         this.model.init();
         this.view.init();
 

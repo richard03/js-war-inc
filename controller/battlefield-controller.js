@@ -15,6 +15,8 @@ class BattlefieldController {
     }
 
     init() {
+        if (this.game.debugMode) console.log('init battlefield controller');
+
         this.model.init();
 
         this.alliedUnits = new Set();

@@ -1,22 +1,19 @@
 class MenuController {
-    constructor(game, view) {
+    constructor(game, model, view) {
         this.game = game;
-        this.view = view;
 
-        this.buttons = [
-            { text: 'Finance', id: 'finance' },
-            { text: 'Výroba', id: 'production' },
-            { text: 'Akce', id: 'action' },
-            { text: 'Konec', id: 'exit' }
-        ];
+        this.model = model;
+        this.view = view;
     }
     
     init() {
+        if (this.game.debugMode) console.log('init menu controller');
+
         this.view.init();
         this.hide();
 
         // Create buttons
-        this.buttons.forEach(button => {
+        this.model.buttons.forEach(button => {
             this.view.addButton(button.text, button.id);
         });
 
@@ -55,7 +52,8 @@ class MenuController {
                 this.game.controller.market.show();
                 break;
             case 'production':
-                alert('Tato sekce bude implementována později.');
+                this.hide();
+                this.game.controller.factory.show();
                 break;
         }
     }

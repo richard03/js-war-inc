@@ -5,23 +5,24 @@ class Game {
         this.model = {
             accountBallance: 5000,
 
+            menu: new MenuModel(this),
             battlefield: new BattlefieldModel(this),
             market: new MarketModel(this),
             factory: new FactoryModel(this),
         }
 
         this.view = {
-            menu: new MenuView(this),
+            menu: new MenuView(this, this.model.menu),
             battlefield: new BattlefieldView(this, this.model.battlefield),
             market: new MarketView(this, this.model.market),
             factory: new FactoryView(this, this.model.factory)
         }
 
         this.controller = {
-            menu: new MenuController(this, this.view.menu),
+            menu: new MenuController(this, this.model.menu, this.view.menu),
             market: new MarketController(this, this.model.market, this.view.market),
             battlefield: new BattlefieldController(this, this.model.battlefield, this.view.battlefield),
-
+            factory: new FactoryController(this, this.model.factory, this.view.factory)
         }
 
         /*
@@ -33,26 +34,29 @@ class Game {
          */
         this.unitsMVC = new Set();
 
+        
+
+    }
+
+    init() {
         this.controller.menu.init();
-        this.controller.menu.show();
+        
         this.controller.market.init();
         this.controller.battlefield.init();
+        this.controller.factory.init();
+        this.showMenu();
+    }
 
-        // mockup: add three units to the game
-        // later this would be done a the factory
-        for (let i = 0; i < 3; i++) {
-            const model = new UnitModel(this);
-            const view = new UnitView(this, model);
-            const controller = new UnitController(this, model, view);
-            controller.init();
+    showMenu() {
 
-            const newUnit = {
-                model: model,
-                view: view,
-                controller: controller
-            };
-            this.unitsMVC.add(newUnit);
-        }
+        this.controller.market.hide();
+        this.controller.factory.hide();
+        this.controller.battlefield.hide();
+        this.controller.menu.show();
+    }
+    
+    getPlayerUnits() {
+        return this.model.factory.playerUnits;
     }
 }
 
@@ -62,4 +66,5 @@ window.addEventListener('load', () => {
     game = new Game({
         debugMode: true
     });
+    game.init();
 }); 

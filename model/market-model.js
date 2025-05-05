@@ -27,14 +27,7 @@ class MarketModel {
     }
 
     init() {
-        // // Ensure price history is initialized
-        // if (!this.priceHistory) {
-        //     this.priceHistory = {};
-        //     this.corporations.forEach(corp => {
-        //         this.priceHistory[corp.id] = Array(20).fill(corp.currentPrice);
-        //     });
-        // }
-
+        if (this.game.debugMode) console.log('init market model');
 
         this.corporations.forEach(corp => {
             // Initialize with 20 data points with random variations

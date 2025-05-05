@@ -34,6 +34,7 @@ class BattlefieldModel {
     }
 
     init() {
+        if (this.game.debugMode) console.log('init battlefield model');
         this.generateTerrainMap();
     }
 

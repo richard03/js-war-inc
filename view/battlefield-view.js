@@ -10,6 +10,8 @@ class BattlefieldView {
     }
 
     init() {
+        if (this.game.debugMode) console.log('init battlefield view');
+
         this.canvas = document.getElementById('gameCanvas');
         this.viewContext = this.canvas.getContext('2d');
         this.boundingClientRectangle = this.canvas.getBoundingClientRect();

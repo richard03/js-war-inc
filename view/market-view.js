@@ -48,6 +48,7 @@ class MarketView {
     }
 
     init() {
+        if (this.game.debugMode) console.log('init market view');
 
         this.container = document.createElement('div');
         this.container.className = 'market-container';
