@@ -10,38 +10,32 @@ class FactoryController {
 
         this.model.init();
         this.view.init();
+        this.update();
 
         // event delegation for the to menu button
-        window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('to-menu-button')) {
-                this.hide();
-                this.game.showMenu();
-            }
+        this.game.addListener('to-menu-button', 'click', () => {
+            this.hide();
+            this.game.showMenu();
         });
 
         // event delegation for the produce button
-        window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('produce-button')) {
-                const blueprintId = event.target.dataset.blueprintId;
-                if (this.model.produceUnit(blueprintId)) {
-                    this.update();
-                }
+        this.game.addListener('produce-button', 'click', (btnElement, event) => {
+            const blueprintId = btnElement.dataset.blueprintId;
+            if (this.model.produceUnit(blueprintId)) {
+                this.update();
             }
         });
 
         // event delegation for the sell button
-        window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('sell-button')) {
-                const unitId = event.target.dataset.unitId;
-                const sellPrice = this.model.getSellPrice(unitId);
-                if (confirm(`Opravdu chcete prodat ${unitId} za ${sellPrice} KR?`)) {
-                    if (this.model.sellUnit(unitId)) {
-                        this.update();
-                    }
+        this.game.addListener('sell-button', 'click', (btnElement, event) => {
+            const unitId = btnElement.dataset.unitId;
+            const sellPrice = this.model.getSellPrice(unitId);
+            if (confirm(`Opravdu chcete prodat ${unitId} za ${sellPrice} KR?`)) {
+                if (this.model.sellUnit(unitId)) {
+                    this.update();
                 }
             }
         });
-    
     }
 
     show() {
@@ -59,5 +53,4 @@ class FactoryController {
         this.view.updateBlueprints();
         this.view.updatePlayerUnits();
     }
-
 }

@@ -39,14 +39,23 @@ class FactoryView {
         this.container.appendChild(this.blueprintsContainer);
         this.container.appendChild(this.playerUnitsContainer);
         document.body.appendChild(this.container);
+
+        this.update();
     }
     
     show() {
         this.container.style.display = 'block';
+        this.update();
     }
 
     hide() {
         this.container.style.display = 'none';
+    }
+
+    update() {
+        this.updateCredits();
+        this.updateBlueprints();
+        this.updatePlayerUnits();
     }
 
     updateCredits() {
@@ -89,6 +98,8 @@ class FactoryView {
         
         const produceButton = document.createElement('button');
         produceButton.textContent = 'Vyrobit';
+        produceButton.classList.add('produce-button');
+        produceButton.dataset.blueprintId = blueprint.id;
         produceButton.disabled = this.game.model.accountBalance < blueprint.price;
         
         card.appendChild(name);
@@ -105,14 +116,16 @@ class FactoryView {
         card.className = 'unit-card';
         
         const name = document.createElement('h3');
-        name.textContent = unit.name;
+        name.textContent = unit.model.name;
         
         const image = document.createElement('img');
-        image.src = unit.image;
-        image.alt = unit.name;
+        image.src = unit.model.image;
+        image.alt = unit.model.name;
         
         const sellButton = document.createElement('button');
         sellButton.textContent = 'Prodat';
+        sellButton.classList.add('sell-button');
+        sellButton.dataset.unitId = unit.id;
         
         card.appendChild(name);
         card.appendChild(image);

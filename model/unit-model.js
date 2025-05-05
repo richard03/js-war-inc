@@ -2,6 +2,8 @@ class UnitModel {
     constructor(game) {
         this.game = game;
 
+        this.id = (Math.random() * Math.MAX_SAFE_INTEGER).toString(36);
+
         this.speed = {
             max: 10,
             current: 0,
@@ -24,6 +26,16 @@ class UnitModel {
             
         }
     
+    }
+
+    init(cfg = {}) {
+        if (this.game.debugMode) console.log('init unit model ' + (cfg.id || this.id));
+
+        if (cfg.id) this.id = cfg.id;
+        this.blueprintId = cfg.blueprintId || null;
+        this.name = cfg.name || 'Unknown';
+        this.price = cfg.price || 0;
+        this.description = cfg.description || '';
     }
 
     update() {

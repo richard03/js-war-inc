@@ -4,7 +4,7 @@ class UnitView {
         this.game = game;
         this.model = model;
 
-        this.sprite = null;
+        this.image = null;
 
         this.healthBar = {
             height: 4,
@@ -55,16 +55,18 @@ class UnitView {
         */
     }
 
-    init() {
+    init(cfg = {}) {
+        if (this.game.debugMode) console.log('init unit view ' + this.model.id);
+
         // Load vehicle sprite
-        this.sprite = new Image();
-        this.sprite.src = 'assets/sprites/vehicle.png';        
+        this.image = new Image();
+        this.image.src = cfg.image || 'assets/sprites/vehicle.png';
     }
 
     getSpriteSize() {
         return {
-            width: this.sprite.naturalWidth,
-            height: this.sprite.naturalHeight
+            width: this.image.naturalWidth,
+            height: this.image.naturalHeight
         }
     }
 
@@ -123,7 +125,7 @@ class UnitView {
         
         // Draw the sprite centered and scaled
         viewContext.drawImage(
-            this.sprite,
+            this.image,
             -unitWidth/2, // Center horizontally
             -unitHeight/2, // Center vertically
             unitWidth,

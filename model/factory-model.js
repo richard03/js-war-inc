@@ -33,7 +33,7 @@ class FactoryModel {
             const view = new UnitView(this, model);
             const controller = new UnitController(this, model, view);
             
-            const id = `${blueprintId}-${Date.now()}`;
+            const id = `${blueprintId}-${Date.now().toString(36)}`;
             model.init({
                 id: id,
                 blueprintId: blueprintId,

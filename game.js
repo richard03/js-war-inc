@@ -3,7 +3,7 @@ class Game {
         this.debugMode = cfg.debugMode || true;
         
         this.model = {
-            accountBallance: 5000,
+            accountBalance: 5000,
 
             menu: new MenuModel(this),
             battlefield: new BattlefieldModel(this),
@@ -57,6 +57,19 @@ class Game {
     
     getPlayerUnits() {
         return this.model.factory.playerUnits;
+    }
+
+    addListener(targetElementClass, eventName, callbackFunction) {
+        document.body.addEventListener(eventName, (event) => {
+            // go through all event.target's parents until the element with the selector is found
+            let target = event.target;
+            while (target.parentElement && !target.classList.contains(targetElementClass)) {
+                target = target.parentElement;
+            }
+            if (target.classList.contains(targetElementClass)) {
+                callbackFunction(target, event);
+            }
+        });
     }
 }
 
